@@ -73,6 +73,10 @@ def calculate_required_land(centre_frame: pd.DataFrame) -> pd.DataFrame:
 
     return centre_frame_copy
 
+def scale_land_price_by_relative_population():
+
+    return None
+
 
 def main():
     # Read the data from the excel file

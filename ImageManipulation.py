@@ -11,6 +11,8 @@ from DataReader import DataCentreWrangler, DataReader, convert_to_decimal_degree
 
 SAVE_LOCATION = './WorkingData/Maps/'
 DEGREEE_TO_METER = 111139
+PROP_PRICE_LOCATION = './Data/PropertyPrices/'
+PROP_FILE = PROP_PRICE_LOCATION + 'RSAPropertyPrices.xlsx'
 
 class ImageManipulation:
     def __init__(self, save_location=SAVE_LOCATION):
@@ -120,6 +122,22 @@ class ImageManipulation:
 
         return data_centre_frame
 
+    def get_base_landmass_shape(self, img: np.ndarray) -> np.ndarray:
+        """
+        This function is used to get the base shape of a landmass from an image. The image is expected to be a numpy array
+        where the landmass is represented by non-NaN values and the non-landmass areas are represented by NaN values.
+
+        The function works by creating a copy of the input image and then setting all non-NaN values to 1. This results in
+        a binary image where the landmass is represented by 1s and everything else is represented by NaNs.
+
+        :param img: The input image as a numpy array.
+        :return: A binary image representing the base shape of the landmass.
+        """
+
+        landmass = img.copy()
+        landmass[~np.isnan(landmass)] = 1
+
+        return landmass
 
 def determine_name (latitude: float, longitude: float, location_frame: gpd.GeoDataFrame):
     """
