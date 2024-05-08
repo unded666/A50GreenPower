@@ -60,11 +60,16 @@ def calculate_required_land(centre_frame: pd.DataFrame) -> pd.DataFrame:
     centre_frame_copy['EnergyPerSqM'] = centre_frame_copy['PV'] * SOLAR_EFFICIENCY
     centre_frame_copy['Expected Total Land Required'] = (centre_frame_copy['Total Annual Power Consumption'] /
                                                    centre_frame_copy['EnergyPerSqM'])
+    # Replace NaNs in total available land with 0
+    centre_frame_copy['Total Available Land'] = centre_frame_copy['Total Available Land'].fillna(0)
     centre_frame_copy['Excess Land Required'] = (centre_frame_copy['Expected Total Land Required'] -
                                                 centre_frame_copy['Total Available Land'])
 
     # Drop the 'EnergyPerSqM' column
     centre_frame_copy.drop('EnergyPerSqM', axis=1, inplace=True)
+
+    # Remove any negative values
+    centre_frame_copy['Excess Land Required'] = centre_frame_copy['Excess Land Required'].apply(lambda x: 0 if x < 0 else x)
 
     return centre_frame_copy
 
