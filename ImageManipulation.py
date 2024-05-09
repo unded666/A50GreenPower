@@ -180,8 +180,8 @@ class ImageManipulation:
     def refine_land_prices_with_population(self,
                                            land_price_map: np.ndarray,
                                            land_price_src: rasterio.io.DatasetReader,
-                                           population_map_src: rasterio.io.DatasetReader,
-                                           province_shape_frame: gpd.GeoDataFrame) -> np.ndarray:
+                                           population_map_src: str,
+                                           province_shape_path: str) -> np.ndarray:
         """
         This function is used to refine the land price map by scaling the land prices based on the population density of the
 
@@ -191,15 +191,19 @@ class ImageManipulation:
         :return: A numpy array representing the refined land price map.
         """
 
-        # Read the population density map
-        population_map = population_map_src.read(1)
-
         # Get the geographic extent of the land price map
         left, bottom, right, top = land_price_src.bounds
 
         # Align the population map with the land price map
-        population_map_aligned = population_map_src.read(1,
-                                                         window=land_price_src.window(left, bottom, right, top))
+        with rasterio.open(population_map_src) as src:
+            population_map_aligned = src.read(1,
+                                              window=land_price_src.window(left, bottom, right, top))
+
+        # Replace all negative values in the population map with NaNs
+        population_map_aligned[population_map_aligned < 0] = np.nan
+
+        # read in prince shape geodataframe
+        province_shape_frame = gpd.read_file(province_shape_path)
 
         # Cycle through the land price regions and scale the prices based on the population density
         for index, row in province_shape_frame.iterrows():
@@ -208,7 +212,7 @@ class ImageManipulation:
                                  out_shape=land_price_src.shape,
                                  invert=True)
             scaled_population = population_map_aligned[mask] / np.nanmean(population_map_aligned[mask])
-            land_price_map[mask] *= scaled_population[mask]
+            land_price_map[mask] *= scaled_population
 
         return land_price_map
 
@@ -225,6 +229,10 @@ class ImageManipulation:
         # Get the base shape of the landmass
         landmass = self.get_base_landmass_shape(img)
         landmass_with_base_prices = self.assign_land_prices_to_base_shape(landmass, src, province_prices, province_shapes)
+        landmass_with_refined_prices = self.refine_land_prices_with_population(landmass_with_base_prices,
+                                                                               src,
+                                                                               POP_FIL,
+                                                                               province_shapes)
 
         return landmass_with_base_prices
 
@@ -288,32 +296,13 @@ def get_province_baseline_from_geocoordinates(longitude:  float,
 
 
 if __name__ == '__main__':
-    # Read in data centre info
-    wrangler = DataCentreWrangler('./Data/Data centres - preliminary information.xlsx')
-    wrangler.wrangle()
-
-    # Convert coordinates to decimal degrees
-    # lat = convert_to_decimal_degrees(wrangler.df['Latitude'].values())
-    # long = convert_to_decimal_degrees(wrangler.df['Longitude'].values())
-    lat = [convert_to_decimal_degrees(L) for L in wrangler.df['Latitude'].to_list()]
-    long = [convert_to_decimal_degrees(L) for L in wrangler.df['Longitude'].to_list()]
-    coords = [(longitude, latitude) for longitude, latitude in zip(long, lat)]
-    # coords = [(long, lat)]
 
     # Read in image and get src
     data = DataReader('./Data/Global Solar Atlas/PVOUT.tif')
     PVimage, PVtransform, PVsrc = data.read_tiff()
-    # with rasterio.open(data.file_path) as src:
-    #     PVimage = src.read(1)
-
-    # Plot
     manipulator = ImageManipulation()
-    # manipulator.plot_image(PVimage, 'Solar Power Output plus Data Centres2', PVsrc, coords=coords)
-    PVexpectations = [manipulator.get_pixel_value(lat, long, PVsrc, PVimage) for lat, long in coords]
-    print(PVexpectations)
 
     # Get the base shape of the landmass
     landmass = manipulator.get_base_landmass_shape(PVimage)
-
     landmass_with_base_prices = manipulator.generate_land_prices(PVimage, PVsrc, pd.read_excel(PROP_FILE), PROVINCE_LOCATION_FILE)
 

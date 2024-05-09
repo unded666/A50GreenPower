@@ -125,10 +125,10 @@ class DataReader:
         """
 
         # Read in required data
-        img_in, src_in, txfm_in = self.read_tiff()
+        img_in, txfm_in, src_in = self.read_tiff()
         img_in[img_in < 0] = np.nan
 
-        return img_in, src_in, txfm_in
+        return img_in, txfm_in, src_in
 
     def get_all_tiffs(self, path: str):
         """
@@ -222,4 +222,4 @@ if __name__ == '__main__':
     # geodf = data.read_geotiff()
     # print (geodf.head())
     data = DataReader(POP_FIL)
-    PVimage, PVsrc, PVTx = data.read_population_data()
+    PVimage, PVTx, PVsrc = data.read_population_data()
