@@ -4,8 +4,8 @@ import os
 import numpy as np
 import rasterio
 from rasterio.features import shapes
+from constants import POP_FIL
 
-POP_FIL = './Data/NASA-SEDAC/gpw-v4-population-density-rev11_2020_2pt5_min_tif/gpw_v4_population_density_rev11_2020_2pt5_min.tif'
 COLUMN_MAPPING = ['Country',
                   'Location',
                   'Total Land Area',

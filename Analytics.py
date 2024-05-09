@@ -5,16 +5,17 @@ import matplotlib.pyplot as plt
 from DataReader import DataCentreWrangler, DataReader, convert_to_decimal_degrees
 from ImageManipulation import ImageManipulation
 import rasterio
+from constants import SOLAR_FILE, DATA_CENTRE_FILE, SOLAR_EFFICIENCY, YSUM_GHI, YSUM_DNI, YSUM_DIF, DEGREEE_TO_METER
 
-SOLAR_DIR = './Data/Global Solar Atlas/'
-SOLAR_FILE = SOLAR_DIR + 'PVOUT_Yearly_sum.tif'
-DATA_CENTRE_FILE = './Data/Data centres - preliminary information.xlsx'
-DEGREEE_TO_METER = 111139
-SOLAR_EFFICIENCY = 0.2
-YSUM_DIR = './Data/Global Solar Atlas/YearlySum/'
-YSUM_GHI = YSUM_DIR + 'GHI.tif'
-YSUM_DNI = YSUM_DIR + 'DNI.tif'
-YSUM_DIF = YSUM_DIR + 'DIF.tif'
+# SOLAR_DIR = './Data/Global Solar Atlas/'
+# SOLAR_FILE = SOLAR_DIR + 'PVOUT_Yearly_sum.tif'
+# DATA_CENTRE_FILE = './Data/Data centres - preliminary information.xlsx'
+# DEGREEE_TO_METER = 111139
+# SOLAR_EFFICIENCY = 0.2
+# YSUM_DIR = './Data/Global Solar Atlas/YearlySum/'
+# YSUM_GHI = YSUM_DIR + 'GHI.tif'
+# YSUM_DNI = YSUM_DIR + 'DNI.tif'
+# YSUM_DIF = YSUM_DIR + 'DIF.tif'
 
 
 def collate_energy_data(solar_files: list) -> tuple[np.ndarray, np.ndarray, rasterio.io.DatasetReader]:

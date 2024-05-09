@@ -8,12 +8,14 @@ from rasterio.plot import show
 from shapely.geometry import Point
 import geopandas as gpd
 from DataReader import DataCentreWrangler, DataReader, convert_to_decimal_degrees
+from constants import SAVE_LOCATION, DEGREEE_TO_METER, PROP_PRICE_LOCATION, PROP_FILE, PROVINCE_LOCATION_FILE, POP_FIL
 
-SAVE_LOCATION = './WorkingData/Maps/'
-DEGREEE_TO_METER = 111139
-PROP_PRICE_LOCATION = './Data/PropertyPrices/'
-PROP_FILE = PROP_PRICE_LOCATION + 'RSAPropertyPrices.xlsx'
-PROVINCE_LOCATION_FILE = './Data/Location/za.json'
+# SAVE_LOCATION = './WorkingData/Maps/'
+# DEGREEE_TO_METER = 111139
+# PROP_PRICE_LOCATION = './Data/PropertyPrices/'
+# PROP_FILE = PROP_PRICE_LOCATION + 'RSAPropertyPrices.xlsx'
+# PROVINCE_LOCATION_FILE = './Data/Location/za.json'
+# POP_FIL = './Data/NASA-SEDAC/gpw-v4-population-density-rev11_2020_2pt5_min_tif/gpw_v4_population_density_rev11_2020_2pt5_min.tif'
 
 class ImageManipulation:
     def __init__(self, save_location=SAVE_LOCATION):
