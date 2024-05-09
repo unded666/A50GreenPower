@@ -175,6 +175,31 @@ class ImageManipulation:
 
         return land_prices
 
+    def refine_land_prices_with_population(self,
+                                           land_price_map: np.ndarray,
+                                           land_price_src: rasterio.io.DatasetReader,
+                                           population_map_src: rasterio.io.DatasetReader) -> np.ndarray:
+        """
+        This function is used to refine the land price map by scaling the land prices based on the population density of the
+
+        :param land_price_map: The land price map as a numpy array.
+        :param land_price_src: The rasterio source object for the land price map.
+        :param population_map_src: The rasterio source object for the population density map.
+        :return: A numpy array representing the refined land price map.
+        """
+
+        # Read the population density map
+        population_map = population_map_src.read(1)
+
+        # Get the geographic extent of the land price map
+        left, bottom, right, top = land_price_src.bounds
+
+        # Align the population map with the land price map
+        population_map_aligned = population_map_src.read(1,
+                                                         window=land_price_src.window(left, bottom, right, top))
+
+        return None
+
     def generate_land_prices(self, img: np.ndarray, src, province_prices: pd.DataFrame, province_shapes: gpd.GeoDataFrame) -> np.ndarray:
         """
         This function is used to generate a land price map for a given landmass. The landmass is expected
