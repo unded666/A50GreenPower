@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pylab as pl
 import rasterio
-from rasterio.features import shapes
+from rasterio.features import shapes, geometry_mask
 from rasterio.plot import show
 from shapely.geometry import Point
 import geopandas as gpd
@@ -13,6 +13,7 @@ SAVE_LOCATION = './WorkingData/Maps/'
 DEGREEE_TO_METER = 111139
 PROP_PRICE_LOCATION = './Data/PropertyPrices/'
 PROP_FILE = PROP_PRICE_LOCATION + 'RSAPropertyPrices.xlsx'
+PROVINCE_LOCATION_FILE = './Data/Location/za.json'
 
 class ImageManipulation:
     def __init__(self, save_location=SAVE_LOCATION):
@@ -139,6 +140,58 @@ class ImageManipulation:
 
         return landmass
 
+    def assign_land_prices_to_base_shape(self,
+                                         landmass_img: np.ndarray,
+                                         landmass_src: rasterio.io.DatasetReader,
+                                         province_prices: pd.DataFrame,
+                                         province_shape_path: str) -> np.ndarray:
+        """
+        This function is used to assign land prices to the base shape of a landmass. The base shape is expected to be a
+        binary image where the landmass is represented by 1s and everything else is represented by NaNs. The function
+        works by iterating over the polygons in the province_shapes GeoDataFrame and assigning the corresponding land
+        price to the landmass pixels that fall within each polygon.
+
+        :param landmass:
+        :param province_prices:
+        :param province_shapes:
+        :return:
+        """
+
+        # Create a copy of the landmass
+        land_prices = landmass_img.copy()
+        province_shape_gdf = gpd.read_file(province_shape_path)
+        # create a dictionary of province names and their corresponding base prices
+        province_prices_dict = province_prices.set_index(province_prices.columns[0])[province_prices.columns[1]].to_dict()
+        # extract base baseline prices and add to the geopandas dataframe
+        province_shape_gdf['base_price'] = [province_prices_dict[Name] for Name in province_shape_gdf.name.values]
+        # Write the base prices to the landmass, using the geometry of the province shapes as a mask
+        for index, row in province_shape_gdf.iterrows():
+            mask = geometry_mask([row['geometry']],
+                                 transform=landmass_src.transform,
+                                 out_shape=landmass_src.shape,
+                                 invert=True)
+            land_prices[mask] = row['base_price']
+
+
+        return land_prices
+
+    def generate_land_prices(self, img: np.ndarray, src, province_prices: pd.DataFrame, province_shapes: gpd.GeoDataFrame) -> np.ndarray:
+        """
+        This function is used to generate a land price map for a given landmass. The landmass is expected
+
+        :param img: The input image as a numpy array.
+        :param province_prices: A DataFrame containing the land prices for each province.
+        :param province_shapes: A GeoDataFrame containing the shapes of the provinces.
+        :return: A numpy array representing the land price map.
+        """
+
+        # Get the base shape of the landmass
+        landmass = self.get_base_landmass_shape(img)
+        landmass_with_base_prices = self.assign_land_prices_to_base_shape(landmass, src, province_prices, province_shapes)
+
+        return landmass_with_base_prices
+
+
 def determine_name (latitude: float, longitude: float, location_frame: gpd.GeoDataFrame):
     """
     determines if the given latitude and longitude are within the bounds of a location in the location_frame,
@@ -221,3 +274,9 @@ if __name__ == '__main__':
     # manipulator.plot_image(PVimage, 'Solar Power Output plus Data Centres2', PVsrc, coords=coords)
     PVexpectations = [manipulator.get_pixel_value(lat, long, PVsrc, PVimage) for lat, long in coords]
     print(PVexpectations)
+
+    # Get the base shape of the landmass
+    landmass = manipulator.get_base_landmass_shape(PVimage)
+
+    landmass_with_base_prices = manipulator.generate_land_prices(PVimage, PVsrc, pd.read_excel(PROP_FILE), PROVINCE_LOCATION_FILE)
+
