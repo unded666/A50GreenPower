@@ -5,6 +5,7 @@ import numpy as np
 import rasterio
 from rasterio.features import shapes
 
+POP_FIL = './Data/NASA-SEDAC/gpw-v4-population-density-rev11_2020_2pt5_min_tif/gpw_v4_population_density_rev11_2020_2pt5_min.tif'
 COLUMN_MAPPING = ['Country',
                   'Location',
                   'Total Land Area',
@@ -115,6 +116,20 @@ class DataReader:
         geodf = gpd.GeoDataFrame.from_features(list(results))
         return geodf
 
+    def read_population_data(self) -> tuple[np.ndarray, rasterio.io.DatasetReader, rasterio.transform]:
+        """
+        Reads the population data from the file path and returns the data, transform, and source, after
+        modifying the image to replace all negative values with numpy NaNs
+
+        :return: a tuple containing the population data, transform, and source
+        """
+
+        # Read in required data
+        img_in, src_in, txfm_in = self.read_tiff()
+        img_in[img_in < 0] = np.nan
+
+        return img_in, src_in, txfm_in
+
     def get_all_tiffs(self, path: str):
         """
         returns all tiff files, with full paths, in the specified directory
@@ -206,7 +221,5 @@ if __name__ == '__main__':
     # data = DataReader('./Data/SA_NLC_2020_ALBERS.tif')
     # geodf = data.read_geotiff()
     # print (geodf.head())
-    data = DataReader('./Data/Global Solar Atlas/PVOUT.tif')
-    PVimage = data.read_tiff()
-    wrangler = DataCentreWrangler('./Data/Data centres - preliminary information.xlsx')
-    wrangler.wrangle()
+    data = DataReader(POP_FIL)
+    PVimage, PVsrc, PVTx = data.read_population_data()
