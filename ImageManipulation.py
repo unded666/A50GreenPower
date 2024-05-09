@@ -180,7 +180,8 @@ class ImageManipulation:
     def refine_land_prices_with_population(self,
                                            land_price_map: np.ndarray,
                                            land_price_src: rasterio.io.DatasetReader,
-                                           population_map_src: rasterio.io.DatasetReader) -> np.ndarray:
+                                           population_map_src: rasterio.io.DatasetReader,
+                                           province_shape_frame: gpd.GeoDataFrame) -> np.ndarray:
         """
         This function is used to refine the land price map by scaling the land prices based on the population density of the
 
@@ -200,7 +201,16 @@ class ImageManipulation:
         population_map_aligned = population_map_src.read(1,
                                                          window=land_price_src.window(left, bottom, right, top))
 
-        return None
+        # Cycle through the land price regions and scale the prices based on the population density
+        for index, row in province_shape_frame.iterrows():
+            mask = geometry_mask([row['geometry']],
+                                 transform=land_price_src.transform,
+                                 out_shape=land_price_src.shape,
+                                 invert=True)
+            scaled_population = population_map_aligned[mask] / np.nanmean(population_map_aligned[mask])
+            land_price_map[mask] *= scaled_population[mask]
+
+        return land_price_map
 
     def generate_land_prices(self, img: np.ndarray, src, province_prices: pd.DataFrame, province_shapes: gpd.GeoDataFrame) -> np.ndarray:
         """
