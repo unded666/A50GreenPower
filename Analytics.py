@@ -134,4 +134,11 @@ def main():
 
 if __name__ == '__main__':
     # main()
-    img = generate_land_price_image()
+    DC = DataCentreWrangler(DATA_CENTRE_FILE)
+    DC.wrangle()
+    dcf = DC.df
+    img, _, src = DataReader(YSUM_GHI).read_tiff()
+    lp_img = generate_land_price_image()
+    ZB=(0, 1600, 2200, 0)
+    # ZB = None
+    ImageManipulation().project_data_centres_onto_map(dcf, src, img, zoombounds=ZB, savefile='./WorkingData/Maps/test.png')

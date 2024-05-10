@@ -65,6 +65,8 @@ class ImageManipulation:
                                       data_centre_frame: pd.DataFrame,
                                       src: rasterio.io.DatasetReader,
                                       img: np.ndarray,
+                                      title: str = None,
+                                      zoombounds: tuple = None,
                                       savefile: str = SAVE_LOCATION):
         """
         Projects the data centres onto the map
@@ -75,8 +77,13 @@ class ImageManipulation:
         :return: The data centre frame with the PV values added.
         """
 
-        plt.imshow(img, cmap='hot_r')
-        plt.colorbar()
+
+        # Plot the image
+        if zoombounds is None:
+            plt.imshow(img, cmap='hot_r')
+        else:
+            left, bottom, right, top = zoombounds
+            plt.imshow(img[top:bottom, left:right], cmap='hot_r')
 
         # Get the coordinates of the data centres
         lat = [convert_to_decimal_degrees(L) for L in data_centre_frame['Latitude'].to_list()]
@@ -89,7 +96,12 @@ class ImageManipulation:
             plt.scatter(px, py, color='blue')
 
         plt.axis('equal')  # Set the aspect ratio of the axes to be equal
-        plt.savefig(savefile)
+        if title is not None:
+            plt.title(title)
+        if savefile is not None:
+            plt.savefig(savefile)
+
+        plt.colorbar()
 
 
     def get_pixel_size(self, geotiff_path) -> tuple:
