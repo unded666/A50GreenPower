@@ -4,18 +4,19 @@ import pandas as pd
 import pylab as pl
 import rasterio
 from rasterio.features import shapes, geometry_mask
-from rasterio.plot import show
+from rasterio.warp import reproject, Resampling
 from shapely.geometry import Point
 import geopandas as gpd
 from DataReader import DataCentreWrangler, DataReader, convert_to_decimal_degrees
-from constants import SAVE_LOCATION, DEGREEE_TO_METER, PROP_PRICE_LOCATION, PROP_FILE, PROVINCE_LOCATION_FILE, POP_FIL
+from constants import (SAVE_LOCATION,
+                       DEGREEE_TO_METER,
+                       PROP_PRICE_LOCATION,
+                       PROP_FILE,
+                       PROVINCE_LOCATION_FILE,
+                       POP_FIL,
+                       MAX_POP_SCALE,
+                       MIN_POP_SCALE)
 
-# SAVE_LOCATION = './WorkingData/Maps/'
-# DEGREEE_TO_METER = 111139
-# PROP_PRICE_LOCATION = './Data/PropertyPrices/'
-# PROP_FILE = PROP_PRICE_LOCATION + 'RSAPropertyPrices.xlsx'
-# PROVINCE_LOCATION_FILE = './Data/Location/za.json'
-# POP_FIL = './Data/NASA-SEDAC/gpw-v4-population-density-rev11_2020_2pt5_min_tif/gpw_v4_population_density_rev11_2020_2pt5_min.tif'
 
 class ImageManipulation:
     def __init__(self, save_location=SAVE_LOCATION):
@@ -194,13 +195,26 @@ class ImageManipulation:
         # Get the geographic extent of the land price map
         left, bottom, right, top = land_price_src.bounds
 
-        # Align the population map with the land price map
-        with rasterio.open(population_map_src) as src:
-            population_map_aligned = src.read(1,
-                                              window=land_price_src.window(left, bottom, right, top))
+        # Open the population map source
+        with rasterio.open(population_map_src) as pop_src:
+            # Convert the geographic extent to pixel coordinates
+            left_px, top_px = ~pop_src.transform * (left, top)
+            right_px, bottom_px = ~pop_src.transform * (right, bottom)
+            # Make sure the pixel coordinates are integers
+            left_px, top_px, right_px, bottom_px = map(int, [left_px, top_px, right_px, bottom_px])
+            the_window = rasterio.windows.Window.from_slices((top_px, bottom_px), (left_px, right_px))
+
+            population_map_aligned = pop_src.read(1,
+                                                  window=the_window,
+                                                  out_shape=land_price_map.shape,
+                                                  resampling=Resampling.bilinear)
+            # population_map_aligned = interpolate_population_map(land_price_src, land_price_map, population_map_src, the_window)
+
 
         # Replace all negative values in the population map with NaNs
         population_map_aligned[population_map_aligned < 0] = np.nan
+        population_map_aligned[population_map_aligned == 0] = 1
+        log_population = np.log(population_map_aligned)
 
         # read in prince shape geodataframe
         province_shape_frame = gpd.read_file(province_shape_path)
@@ -211,8 +225,20 @@ class ImageManipulation:
                                  transform=land_price_src.transform,
                                  out_shape=land_price_src.shape,
                                  invert=True)
-            scaled_population = population_map_aligned[mask] / np.nanmean(population_map_aligned[mask])
-            land_price_map[mask] *= scaled_population
+
+            # Get the relative population density (relative to the political area)
+            masked_log_population = log_population[mask]
+            relative_log_population = masked_log_population / np.nanmean(masked_log_population)
+
+            # Scale the land prices based on the relative population density, ensuring that the prices are within the
+            # bounds set by the MAX_POP_SCALE and MIN_POP_SCALE constants. This is done by creating a straight-line
+            # function that maps the relative_log_population values to the range [MIN_POP_SCALE, MAX_POP_SCALE].
+            relative_log_population = np.interp(relative_log_population,
+                                                (np.nanmin(relative_log_population), np.nanmax(relative_log_population)),
+                                                (MIN_POP_SCALE, MAX_POP_SCALE))
+
+            # scale the land prices based on the relative population density
+            land_price_map[mask] *= relative_log_population
 
         return land_price_map
 
@@ -221,6 +247,7 @@ class ImageManipulation:
         This function is used to generate a land price map for a given landmass. The landmass is expected
 
         :param img: The input image as a numpy array.
+        :param src: The rasterio source object for the input image.
         :param province_prices: A DataFrame containing the land prices for each province.
         :param province_shapes: A GeoDataFrame containing the shapes of the provinces.
         :return: A numpy array representing the land price map.
@@ -234,7 +261,7 @@ class ImageManipulation:
                                                                                POP_FIL,
                                                                                province_shapes)
 
-        return landmass_with_base_prices
+        return landmass_with_refined_prices
 
 
 def determine_name (latitude: float, longitude: float, location_frame: gpd.GeoDataFrame):
