@@ -15,7 +15,8 @@ from constants import (SAVE_LOCATION,
                        PROVINCE_LOCATION_FILE,
                        POP_FIL,
                        MAX_POP_SCALE,
-                       MIN_POP_SCALE)
+                       MIN_POP_SCALE,
+                       YSUM_GHI)
 
 
 class ImageManipulation:
@@ -59,6 +60,37 @@ class ImageManipulation:
         if save:
             plt.savefig(self.save_location + title + '.png')
         plt.close()
+
+    def project_data_centres_onto_map(self,
+                                      data_centre_frame: pd.DataFrame,
+                                      src: rasterio.io.DatasetReader,
+                                      img: np.ndarray,
+                                      savefile: str = SAVE_LOCATION):
+        """
+        Projects the data centres onto the map
+
+        :param data_centre_frame: The data centre frame.
+        :param src: The rasterio source object for the image.
+        :param img: The image as a numpy array.
+        :return: The data centre frame with the PV values added.
+        """
+
+        plt.imshow(img, cmap='hot_r')
+        plt.colorbar()
+
+        # Get the coordinates of the data centres
+        lat = [convert_to_decimal_degrees(L) for L in data_centre_frame['Latitude'].to_list()]
+        long = [convert_to_decimal_degrees(L) for L in data_centre_frame['Longitude'].to_list()]
+        coords = [(longitude, latitude) for longitude, latitude in zip(long, lat)]
+
+        # Plot the data centres on the map
+        for lat, long in coords:
+            px, py = self.translate_coordinates_to_pixels(lat, long, src)
+            plt.scatter(px, py, color='blue')
+
+        plt.axis('equal')  # Set the aspect ratio of the axes to be equal
+        plt.savefig(savefile)
+
 
     def get_pixel_size(self, geotiff_path) -> tuple:
         """
@@ -195,6 +227,9 @@ class ImageManipulation:
         # Get the geographic extent of the land price map
         left, bottom, right, top = land_price_src.bounds
 
+        # ensure we have a numpy array of floats for the land price map
+        land_price_map_float = land_price_map.astype(float)
+
         # Open the population map source
         with rasterio.open(population_map_src) as pop_src:
             # Convert the geographic extent to pixel coordinates
@@ -238,9 +273,9 @@ class ImageManipulation:
                                                 (MIN_POP_SCALE, MAX_POP_SCALE))
 
             # scale the land prices based on the relative population density
-            land_price_map[mask] *= relative_log_population
+            land_price_map_float[mask] *= relative_log_population
 
-        return land_price_map
+        return land_price_map_float
 
     def generate_land_prices(self, img: np.ndarray, src, province_prices: pd.DataFrame, province_shapes: gpd.GeoDataFrame) -> np.ndarray:
         """
@@ -326,10 +361,15 @@ if __name__ == '__main__':
 
     # Read in image and get src
     data = DataReader('./Data/Global Solar Atlas/PVOUT.tif')
+    data2 = DataReader(YSUM_GHI)
     PVimage, PVtransform, PVsrc = data.read_tiff()
+    PV2, PVT2, PVsrc2 = data2.read_tiff()
     manipulator = ImageManipulation()
 
     # Get the base shape of the landmass
-    landmass = manipulator.get_base_landmass_shape(PVimage)
-    landmass_with_base_prices = manipulator.generate_land_prices(PVimage, PVsrc, pd.read_excel(PROP_FILE), PROVINCE_LOCATION_FILE)
+    landmass_with_base_prices = manipulator.generate_land_prices(PVimage,
+                                                                 PVsrc,
+                                                                 pd.read_excel(PROP_FILE),
+                                                                 PROVINCE_LOCATION_FILE)
+
 

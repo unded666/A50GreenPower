@@ -5,7 +5,16 @@ import matplotlib.pyplot as plt
 from DataReader import DataCentreWrangler, DataReader, convert_to_decimal_degrees
 from ImageManipulation import ImageManipulation
 import rasterio
-from constants import SOLAR_FILE, DATA_CENTRE_FILE, SOLAR_EFFICIENCY, YSUM_GHI, YSUM_DNI, YSUM_DIF, DEGREEE_TO_METER
+from constants import (SOLAR_FILE,
+                       DATA_CENTRE_FILE,
+                       SOLAR_EFFICIENCY,
+                       YSUM_GHI,
+                       YSUM_DNI,
+                       YSUM_DIF,
+                       DEGREEE_TO_METER,
+                       PROVINCE_LOCATION_FILE,
+                       POP_FIL,
+                       PROP_FILE)
 
 # SOLAR_DIR = './Data/Global Solar Atlas/'
 # SOLAR_FILE = SOLAR_DIR + 'PVOUT_Yearly_sum.tif'
@@ -74,9 +83,36 @@ def calculate_required_land(centre_frame: pd.DataFrame) -> pd.DataFrame:
 
     return centre_frame_copy
 
-def scale_land_price_by_relative_population():
+def generate_land_price_image(province_file: str = PROVINCE_LOCATION_FILE,
+                              pop_file: str = POP_FIL,
+                              solar_reference = YSUM_GHI,
+                              property_file: str = PROP_FILE) -> np.ndarray:
+    """
+    Generates a land price image using the province file and the population file. The land price is
+    calculated by dividing the population by the area of the province, and then multiplying by the price
+    of the land in the province. The land price is then returned as an image.
 
-    return None
+    :param province_file: the file containing the province data
+    :param pop_file: the file containing the population data
+
+    :return: a numpy array containing the land price image
+    """
+
+    # Read in image and get src
+    solar_data = DataReader(solar_reference)
+    PVimage, PVtransform, PVsrc = solar_data.read_tiff()
+
+    # instantiate Image Manipulator object
+    manipulator = ImageManipulation()
+
+    # Get the base shape of the landmass
+    landmass = manipulator.get_base_landmass_shape(PVimage)
+    landmass_with_prices = manipulator.generate_land_prices(PVimage,
+                                                            PVsrc,
+                                                            pd.read_excel(property_file),
+                                                            province_file)
+
+    return landmass_with_prices
 
 
 def main():
@@ -98,15 +134,4 @@ def main():
 
 if __name__ == '__main__':
     # main()
-    data_centre_wrangler = DataCentreWrangler(DATA_CENTRE_FILE)
-    data_centre_wrangler.wrangle()
-    data_center_df = data_centre_wrangler.df.copy()
-    reader_solar_data = DataReader(YSUM_GHI)
-    solar_image, solar_transform, solar_src = reader_solar_data.read_tiff()
-    # manip = ImageManipulation(save_location='./WorkingData/Maps/')
-    # x_size, y_size, pixel_sqm = manip.get_pixel_size(reader_solar_data.file_path)
-    # solar_enriched_df = manip.get_PV_from_tiff(solar_src, solar_image, data_centre_wrangler.df)
-    data_center_df = ImageManipulation().get_PV_from_tiff(src=solar_src,
-                                                          img=solar_image,
-                                                          data_centre_frame=data_center_df)
-    data_center_df = calculate_required_land(data_center_df)
+    img = generate_land_price_image()
