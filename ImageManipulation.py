@@ -85,6 +85,8 @@ class ImageManipulation:
             left, bottom, right, top = zoombounds
             plt.imshow(img[top:bottom, left:right], cmap='hot_r')
 
+        plt.colorbar()
+
         # Get the coordinates of the data centres
         lat = [convert_to_decimal_degrees(L) for L in data_centre_frame['Latitude'].to_list()]
         long = [convert_to_decimal_degrees(L) for L in data_centre_frame['Longitude'].to_list()]
@@ -100,8 +102,6 @@ class ImageManipulation:
             plt.title(title)
         if savefile is not None:
             plt.savefig(savefile)
-
-        plt.colorbar()
 
 
     def get_pixel_size(self, geotiff_path) -> tuple:
