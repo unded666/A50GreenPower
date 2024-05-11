@@ -3,8 +3,10 @@ import pandas as pd
 import os
 import numpy as np
 import rasterio
+from rasterio.windows import from_bounds
+from rasterio.warp import Resampling
 from rasterio.features import shapes
-from constants import POP_FIL
+import constants
 
 COLUMN_MAPPING = ['Country',
                   'Location',
@@ -153,10 +155,24 @@ class DataReader:
         gdf = gpd.read_file(self.file_path)
         return gdf
 
-    def read_tiff(self):
+    def read_tiff(self, reference_src: rasterio.io.DatasetReader=None):
         with rasterio.open(self.file_path) as src:
-            image = src.read(1)
-            transform = src.transform
+            if reference_src is None:
+                image = src.read(1)
+                transform = src.transform
+            else:
+                overlap_window = from_bounds(*src.bounds, reference_src.transform)
+                nonsense_image = src.read(1, window=overlap_window)
+
+                sampled_image = src.read(1,
+                                         out_shape=nonsense_image.shape,
+                                         resampling=Resampling.bilinear)
+                transform = reference_src.transform
+
+                # create a numpy ndarray filled with NaNs, of the size of the reference image
+                image = np.full(reference_src.shape, np.nan)
+                # copy the sampled image into the correct location in the reference image
+                image[:sampled_image.shape[0], :sampled_image.shape[1]] = sampled_image
 
         return image, transform, src
 
@@ -221,5 +237,7 @@ if __name__ == '__main__':
     # data = DataReader('./Data/SA_NLC_2020_ALBERS.tif')
     # geodf = data.read_geotiff()
     # print (geodf.head())
-    data = DataReader(POP_FIL)
-    PVimage, PVTx, PVsrc = data.read_population_data()
+    solar_data = DataReader(constants.YSUM_GHI)
+    land_data = DataReader(constants.LAND_USE_FILE)
+    s_img, _, s_src = solar_data.read_tiff()
+    l_img, _, l_src = land_data.read_tiff(reference_src=s_src)
