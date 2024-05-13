@@ -104,6 +104,58 @@ class ImageManipulation:
             plt.savefig(savefile)
 
 
+    def project_graded_data_centres_onto_map(self,
+                                             data_centre_frame: pd.DataFrame,
+                                             src: rasterio.io.DatasetReader,
+                                             img: np.ndarray,
+                                             intensity_column: str,
+                                             title: str = None,
+                                             zoombounds: tuple = None,
+                                             savefile: str = SAVE_LOCATION):
+        """
+        Projects the data centres onto the map with the intensity of the scatter point indicating the relative
+        value of the intensity column of interest at the data centre location"
+
+        :param data_centre_frame: The data centre frame.
+        :param src: The rasterio source object for the image.
+        :param img: The image as a numpy array.
+        :param intensity_column: The column in the data centre frame that contains the intensity values.
+        :param title: The title of the plot.
+        :param zoombounds: The bounds of the plot.
+        :param savefile: The location to save the plot.
+        :return: The data centre frame with the PV values added.
+        """
+
+        # Plot the image
+        if zoombounds is None:
+            plt.imshow(img, cmap='hot_r')
+        else:
+            left, bottom, right, top = zoombounds
+            plt.imshow(img[top:bottom, left:right], cmap='hot_r')
+
+        plt.colorbar()
+
+        # Get the coordinates of the data centres
+        lat = [convert_to_decimal_degrees(L) for L in data_centre_frame['Latitude'].to_list()]
+        long = [convert_to_decimal_degrees(L) for L in data_centre_frame['Longitude'].to_list()]
+        coords = [(longitude, latitude) for longitude, latitude in zip(long, lat)]
+
+        # Get the intensity values
+        intensity_values = np.array(data_centre_frame[intensity_column].to_list())
+        normalised_intensity_values = (intensity_values - np.min(intensity_values)) / (np.max(intensity_values) - np.min(intensity_values))
+
+        # Plot the data centres on the map
+        for (lat, long), intensity in zip(coords, intensity_values):
+            px, py = self.translate_coordinates_to_pixels(lat, long, src)
+            plt.scatter(px, py, color='blue', alpha=intensity)
+
+        plt.axis('equal')  # Set the aspect ratio of the axes to be equal
+        if title is not None:
+            plt.title(title)
+        if savefile is not None:
+            plt.savefig(savefile)
+
+
     def get_pixel_size(self, geotiff_path) -> tuple:
         """
         Get the size of a pixel in a GeoTIFF image. Converts from degrees into meters and square meters
