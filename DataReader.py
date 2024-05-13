@@ -155,7 +155,7 @@ class DataReader:
         gdf = gpd.read_file(self.file_path)
         return gdf
 
-    def read_tiff(self, reference_src: rasterio.io.DatasetReader=None):
+    def read_tiff(self, reference_src: rasterio.io.DatasetReader=None, offset=[0, 0]):
         with rasterio.open(self.file_path) as src:
             if reference_src is None:
                 image = src.read(1)
@@ -172,7 +172,7 @@ class DataReader:
                 # create a numpy ndarray filled with NaNs, of the size of the reference image
                 image = np.full(reference_src.shape, np.nan)
                 # copy the sampled image into the correct location in the reference image
-                image[:sampled_image.shape[0], :sampled_image.shape[1]] = sampled_image
+                image[offset[0]:sampled_image.shape[0]+offset[0], offset[1]:sampled_image.shape[1]+offset[1]] = sampled_image
 
         return image, transform, src
 
@@ -240,4 +240,4 @@ if __name__ == '__main__':
     solar_data = DataReader(constants.YSUM_GHI)
     land_data = DataReader(constants.LAND_USE_FILE)
     s_img, _, s_src = solar_data.read_tiff()
-    l_img, _, l_src = land_data.read_tiff(reference_src=s_src)
+    l_img, _, l_src = land_data.read_tiff(reference_src=s_src, offset=[10, 30])
