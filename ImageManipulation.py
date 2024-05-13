@@ -146,7 +146,7 @@ class ImageManipulation:
         """
         return ~src.transform * (long, lat)
 
-    def get_PV_from_tiff(self, src, img, data_centre_frame: pd.DataFrame) -> pd.DataFrame:
+    def get_values_from_tiff(self, src, img, data_centre_frame: pd.DataFrame, output_column: str) -> pd.DataFrame:
         """
         gets the PV values from the source img at locations specified in the data_centre_frame dataframe,
         taking latitude and longitude from the 'latitude' and 'longitude' columns respectively. Returns a dataframe
@@ -163,10 +163,10 @@ class ImageManipulation:
         coords = [(longitude, latitude) for longitude, latitude in zip(long, lat)]
 
         # Get the PV values at the data centre locations
-        PV_values = [self.get_pixel_value(lat, long, src, img) for lat, long in coords]
+        output_values = [self.get_pixel_value(lat, long, src, img) for lat, long in coords]
 
         # Add the PV values to the data centre frame
-        data_centre_frame['PV'] = PV_values
+        data_centre_frame[output_column] = output_values
 
         return data_centre_frame
 
