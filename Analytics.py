@@ -173,11 +173,9 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
     price_df = ImageManipulation().get_values_from_tiff(src=solar_src,
                                                         img=landmass_with_prices,
                                                         data_centre_frame=expected_land_df,
-                                                        output_column='Land Price (R per Ha')
+                                                        output_column='Land Price (R per Ha)')
 
-
-
-
+    price_df['Total Land Price (R)'] = price_df['Expected Total Land Required'] * price_df['Land Price (R per Ha)']
 
     # saving the file if required
     if outfile is not None:
