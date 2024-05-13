@@ -25,11 +25,11 @@ def analyse_monthly_data(data_centre_wrangler: DataCentreWrangler,
 
     :param monthly_file_dir:
     :param data_centre_frame:
-    :return:
+    :return: wrangler whose dataframe has added mean and variance columns
     """
 
     monthly_files = DataReader(monthly_file_dir).get_all_tiffs(monthly_file_dir)
-    monthly_readers = [DataReader(monthly_file) for monthly_file in monthly_file_dir]
+    monthly_readers = [DataReader(monthly_file) for monthly_file in monthly_files]
     long, lat, coords = data_centre_wrangler.get_coordinate_list()
     dc_df = data_centre_wrangler.df
 
@@ -41,7 +41,6 @@ def analyse_monthly_data(data_centre_wrangler: DataCentreWrangler,
     data_centre_wrangler.df['std'] = data_centre_wrangler.df[constants.MONTHS].std(axis=1)
 
     return data_centre_wrangler
-
 
 def translate_image_values_by_mapping_frame(image: np.ndarray,
                                             mapping_frame: pd.DataFrame,
@@ -166,6 +165,19 @@ def generate_land_price_image(province_file: str = constants.PROVINCE_LOCATION_F
     return landmass_with_prices
 
 
+def get_best_X(dataframe: pd.DataFrame, X: int, column: str) -> pd.DataFrame:
+    """
+    Returns the top X rows of the dataframe, sorted by the specified column
+
+    :param dataframe: the dataframe to be sorted
+    :param X: the number of rows to return
+    :param column: the column to sort by
+    :return: the top X rows of the dataframe
+    """
+
+    return dataframe.sort_values(by=column, ascending=False).head(X)
+
+
 def run_analysis(outfile: str = None) -> pd.DataFrame:
     """
     Runs the full set of analysis. Obtains the PV data from the solar file, and then calculates the expected
@@ -177,7 +189,7 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
     """
 
     # Read the data from the excel file
-    print ('Reading the data from the excel file')
+    print('Reading the data from the excel file')
     data_centre_wrangler = DataCentreWrangler(constants.DATA_CENTRE_FILE)
     data_centre_wrangler.wrangle()
     data_centre_df = data_centre_wrangler.df
@@ -185,6 +197,24 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
     # Get the solar data from the data reader
     print('Getting the solar data from the data reader')
     solar_image, solar_transform, solar_src = DataReader(constants.SOLAR_FILE).read_tiff()
+
+    # get monthly solar data for the data centres
+    monthly_wrangler = DataCentreWrangler(constants.DATA_CENTRE_FILE)
+    monthly_wrangler.wrangle()
+    monthly_wrangler = analyse_monthly_data(monthly_wrangler)
+    monthly_df = monthly_wrangler.df
+    data_centre_df['std'] = monthly_df['std']
+    data_centre_df['mean'] = monthly_df['mean']
+
+    bar_df = data_centre_df[['Site', 'mean', 'std']]
+    bar_df.set_index('Site', inplace=True)
+    bar_df.plot(kind='bar')
+    plt.rcParams['figure.figsize'] = (12, 6)
+    plt.title('Mean and Standard Deviation of Monthly Solar Energy by site')
+    plt.ylabel('Energy (kWh/m^2)')
+    plt.xticks(rotation=80, fontsize=6)
+    plt.tight_layout()
+    plt.savefig('./Data/Output_files/Maps/MonthlySolarEnergy.png', dpi=600)
 
     # Get the land use data from the data reader
     land_use_img, _, land_use_src = DataReader(constants.LAND_USE_FILE).read_tiff(reference_src=solar_src,
