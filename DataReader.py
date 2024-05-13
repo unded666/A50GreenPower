@@ -241,3 +241,4 @@ if __name__ == '__main__':
     land_data = DataReader(constants.LAND_USE_FILE)
     s_img, _, s_src = solar_data.read_tiff()
     l_img, _, l_src = land_data.read_tiff(reference_src=s_src, offset=[10, 30])
+    preference_df = pd.read_excel(constants.LAND_PREF_FILE, sheet_name='Land Use', skiprows=2)

@@ -5,16 +5,7 @@ import matplotlib.pyplot as plt
 from DataReader import DataCentreWrangler, DataReader, convert_to_decimal_degrees
 from ImageManipulation import ImageManipulation
 import rasterio
-from constants import (SOLAR_FILE,
-                       DATA_CENTRE_FILE,
-                       SOLAR_EFFICIENCY,
-                       YSUM_GHI,
-                       YSUM_DNI,
-                       YSUM_DIF,
-                       DEGREEE_TO_METER,
-                       PROVINCE_LOCATION_FILE,
-                       POP_FIL,
-                       PROP_FILE)
+import constants
 
 # SOLAR_DIR = './Data/Global Solar Atlas/'
 # SOLAR_FILE = SOLAR_DIR + 'PVOUT_Yearly_sum.tif'
@@ -26,6 +17,33 @@ from constants import (SOLAR_FILE,
 # YSUM_DNI = YSUM_DIR + 'DNI.tif'
 # YSUM_DIF = YSUM_DIR + 'DIF.tif'
 
+
+def translate_image_values_by_mapping_frame(image: np.ndarray,
+                                            mapping_frame: pd.DataFrame,
+                                            key_column: str,
+                                            value_column: str) -> np.ndarray:
+
+    """
+    Translates the values in the image using the mapping frame. The mapping frame contains the key column
+    and the value column, which are used to translate the values in the image. The key column contains the
+    original values in the image, and the value column contains the values that the original values should
+    be translated to. The function returns the image with the values translated.
+
+    :param image: the image to be translated
+    :param mapping_frame: dataframe containing the mapping values
+    :param key_column: column name containing the original values
+    :param value_column: column name containing the values to be translated to
+    :return: the image with the values translated
+    """
+
+    # Create a copy of the image
+    image_copy = image.copy()
+    # create a mapping dictionary from the mapping frame
+    mapping_dict = mapping_frame.set_index(key_column)[value_column].to_dict()
+    # Translate the values in the image
+    image_copy = np.vectorize(mapping_dict.get)(image_copy)
+
+    return image_copy
 
 def collate_energy_data(solar_files: list) -> tuple[np.ndarray, np.ndarray, rasterio.io.DatasetReader]:
     """
@@ -67,7 +85,7 @@ def calculate_required_land(centre_frame: pd.DataFrame) -> pd.DataFrame:
     centre_frame_copy = centre_frame.copy()
 
     # Calculate the energy per square meter and the expected land required
-    centre_frame_copy['EnergyPerSqM'] = centre_frame_copy['PV'] * SOLAR_EFFICIENCY
+    centre_frame_copy['EnergyPerSqM'] = centre_frame_copy['PV'] * constants.SOLAR_EFFICIENCY
     centre_frame_copy['Expected Total Land Required'] = (centre_frame_copy['Total Annual Power Consumption'] /
                                                    centre_frame_copy['EnergyPerSqM'])
     # Replace NaNs in total available land with 0
@@ -83,10 +101,10 @@ def calculate_required_land(centre_frame: pd.DataFrame) -> pd.DataFrame:
 
     return centre_frame_copy
 
-def generate_land_price_image(province_file: str = PROVINCE_LOCATION_FILE,
-                              pop_file: str = POP_FIL,
-                              solar_reference = YSUM_GHI,
-                              property_file: str = PROP_FILE) -> np.ndarray:
+def generate_land_price_image(province_file: str = constants.PROVINCE_LOCATION_FILE,
+                              pop_file: str = constants.POP_FIL,
+                              solar_reference = constants.YSUM_GHI,
+                              property_file: str = constants.PROP_FILE) -> np.ndarray:
     """
     Generates a land price image using the province file and the population file. The land price is
     calculated by dividing the population by the area of the province, and then multiplying by the price
@@ -118,12 +136,12 @@ def generate_land_price_image(province_file: str = PROVINCE_LOCATION_FILE,
 def main():
     # Read the data from the excel file
     print ('Reading the data from the excel file')
-    data_centre_wrangler = DataCentreWrangler(DATA_CENTRE_FILE)
+    data_centre_wrangler = DataCentreWrangler(constants.DATA_CENTRE_FILE)
     data_centre_wrangler.wrangle()
 
     # Get the solar data from the data reader
     print('Getting the solar data from the data reader')
-    reader_solar_data = DataReader(SOLAR_FILE)
+    reader_solar_data = DataReader(constants.SOLAR_FILE)
     solar_image, solar_transform, solar_src = reader_solar_data.read_tiff()
 
     # Instantiate image manipulator
@@ -134,11 +152,14 @@ def main():
 
 if __name__ == '__main__':
     # main()
-    DC = DataCentreWrangler(DATA_CENTRE_FILE)
+    DC = DataCentreWrangler(constants.DATA_CENTRE_FILE)
     DC.wrangle()
     dcf = DC.df
-    img, _, src = DataReader(YSUM_GHI).read_tiff()
-    lp_img = generate_land_price_image()
-    ZB=(0, 1600, 2200, 0)
-    # ZB = None
-    ImageManipulation().project_data_centres_onto_map(dcf, src, img, zoombounds=ZB, savefile='./WorkingData/Maps/test.png')
+    s_img, _, s_src = DataReader(constants.YSUM_GHI).read_tiff()
+    img, _, src = DataReader(constants.LAND_USE_FILE).read_tiff(reference_src=s_src, offset=[10, 30])
+    img[img == 0] = np.NaN
+    preference_df = pd.read_excel(constants.LAND_PREF_FILE, sheet_name='Land Use', skiprows=2)
+    img_2 = translate_image_values_by_mapping_frame(img,
+                                                    preference_df,
+                                                    key_column='#',
+                                                    value_column='Implication (Weighting)')
