@@ -156,7 +156,7 @@ class ImageManipulation:
         # Plot the data centres on the map
         for (lat, long), intensity in zip(coords, normalised_intensity_values):
             px, py = self.translate_coordinates_to_pixels(lat, long, src)
-            plt.scatter(px, py, color='blue', alpha=intensity)
+            plt.scatter(px, py, color='green', alpha=intensity)
 
         plt.axis('equal')  # Set the aspect ratio of the axes to be equal
         if title is not None:

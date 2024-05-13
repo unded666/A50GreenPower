@@ -40,8 +40,16 @@ def translate_image_values_by_mapping_frame(image: np.ndarray,
     image_copy = image.copy()
     # create a mapping dictionary from the mapping frame
     mapping_dict = mapping_frame.set_index(key_column)[value_column].to_dict()
+    # add a default value of zero to the dictionary to any unique values
+    # in the image that are not in the mapping frame
+    all_keys = list(mapping_dict.keys())
+    for key in np.unique(image_copy):
+        if key not in all_keys and np.isnan(key) == False:
+            mapping_dict[int(key)] = 0
+
     # Translate the values in the image
-    image_copy = np.vectorize(mapping_dict.get)(image_copy)
+    for key, value in mapping_dict.items():
+        image_copy[image_copy == key] = value
 
     return image_copy
 
@@ -152,6 +160,17 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
     # Get the solar data from the data reader
     print('Getting the solar data from the data reader')
     solar_image, solar_transform, solar_src = DataReader(constants.SOLAR_FILE).read_tiff()
+
+    # Get the land use data from the data reader
+    land_use_img, _, land_use_src = DataReader(constants.LAND_USE_FILE).read_tiff(reference_src=solar_src,
+                                                                                  offset=[10, 30])
+    # clean land use image by replacing zeroes with np.NaN
+    land_use_img[land_use_img == 0] = np.NaN
+    # get the preference data from the excel file
+    preference_df = pd.read_excel(constants.LAND_PREF_FILE, sheet_name='Land Use', skiprows=2)
+
+
+
     PV_df = ImageManipulation().get_values_from_tiff(solar_src,
                                                    solar_image,
                                                    data_centre_df,
@@ -177,17 +196,42 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
 
     price_df['Total Land Price (R)'] = price_df['Expected Total Land Required'] * price_df['Land Price (R per Ha)']
 
+    preference_img = translate_image_values_by_mapping_frame(image=land_use_img,
+                                                             mapping_frame=preference_df,
+                                                             key_column='#',
+                                                             value_column='Implication (Weighting)')
+
+    # plot the data centres on a backdrop of the land preferences
+    ImageManipulation().project_data_centres_onto_map(data_centre_frame=price_df,
+                                                      src=solar_src,
+                                                      img=preference_img,
+                                                      title='Preference by land use',
+                                                      zoombounds=constants.ZOOM_BOUNDS,
+                                                      savefile='./Data/Output_files/Maps/LandUse.png')
+
+    # plot the data centres by land requirement on a backdrop of the land price
+    ImageManipulation().project_graded_data_centres_onto_map(data_centre_frame=price_df,
+                                                             src=solar_src,
+                                                             img=landmass_with_prices,
+                                                             intensity_column='Expected Total Land Required',
+                                                             invert_preference=True,
+                                                             title='Preferred Data Centre Locations by land requirement',
+                                                             zoombounds=constants.ZOOM_BOUNDS,
+                                                             cmap='cool',
+                                                             cbar=False,
+                                                             savefile='./Data/Output_files/Maps/LandRequirement.png')
+
+    # plot the graded data centres by cost of developing the land
     ImageManipulation().project_graded_data_centres_onto_map(data_centre_frame=price_df,
                                                              src=solar_src,
                                                              img=solar_image,
                                                              intensity_column='Total Land Price (R)',
                                                              invert_preference=True,
-                                                             title='Preferred Data Centre Locations',
-                                                             zoombounds=(0, 1600, 2200, 0),
-                                                             cmap='viridis',
+                                                             title='Preferred Data Centre Locations by cost requirement',
+                                                             zoombounds=constants.ZOOM_BOUNDS,
+                                                             cmap='cool',
                                                              cbar=False,
-                                                             savefile='./WorkingData/Maps/GradedScatter.png')
-
+                                                             savefile='./Data/Output_files/Maps/CostRequirement.png')
 
 
     # saving the file if required
@@ -225,4 +269,4 @@ if __name__ == '__main__':
     #                                                 preference_df,
     #                                                 key_column='#',
     #                                                 value_column='Implication (Weighting)')
-    run_analysis('./WorkingData/Spreadsheets/testme.xlsx')
+    run_analysis('./Data/Output_files/Spreadsheets/outfile.xlsx')

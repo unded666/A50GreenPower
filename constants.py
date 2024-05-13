@@ -16,3 +16,4 @@ DATA_CENTRE_FILE = './Data/Data centres - preliminary information.xlsx'
 SOLAR_EFFICIENCY = 0.2
 MAX_POP_SCALE = 1.3
 MIN_POP_SCALE = 0.7
+ZOOM_BOUNDS = (0, 1600, 2200, 0)
