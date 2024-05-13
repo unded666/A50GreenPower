@@ -177,6 +177,18 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
 
     price_df['Total Land Price (R)'] = price_df['Expected Total Land Required'] * price_df['Land Price (R per Ha)']
 
+    ImageManipulation().project_graded_data_centres_onto_map(data_centre_frame=price_df,
+                                                             src=solar_src,
+                                                             img=solar_image,
+                                                             intensity_column='Total Land Price (R)',
+                                                             title='Preferred Data Centre Locations',
+                                                             zoombounds=(0, 1600, 2200, 0),
+                                                             cmap='viridis',
+                                                             cbar=False,
+                                                             savefile='./WorkingData/Maps/GradedScatter.png')
+
+
+
     # saving the file if required
     if outfile is not None:
         price_df.to_excel(outfile)

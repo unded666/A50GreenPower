@@ -111,6 +111,8 @@ class ImageManipulation:
                                              intensity_column: str,
                                              title: str = None,
                                              zoombounds: tuple = None,
+                                             cmap = 'hot_r',
+                                             cbar = True,
                                              savefile: str = SAVE_LOCATION):
         """
         Projects the data centres onto the map with the intensity of the scatter point indicating the relative
@@ -122,18 +124,21 @@ class ImageManipulation:
         :param intensity_column: The column in the data centre frame that contains the intensity values.
         :param title: The title of the plot.
         :param zoombounds: The bounds of the plot.
+        :param cmap: The color map to use.
         :param savefile: The location to save the plot.
+        :param cbar: Whether or not to include a color bar.
         :return: The data centre frame with the PV values added.
         """
 
         # Plot the image
         if zoombounds is None:
-            plt.imshow(img, cmap='hot_r')
+            plt.imshow(img, cmap=cmap)
         else:
             left, bottom, right, top = zoombounds
-            plt.imshow(img[top:bottom, left:right], cmap='hot_r')
+            plt.imshow(img[top:bottom, left:right], cmap=cmap)
 
-        plt.colorbar()
+        if cbar:
+            plt.colorbar()
 
         # Get the coordinates of the data centres
         lat = [convert_to_decimal_degrees(L) for L in data_centre_frame['Latitude'].to_list()]
@@ -145,7 +150,7 @@ class ImageManipulation:
         normalised_intensity_values = (intensity_values - np.min(intensity_values)) / (np.max(intensity_values) - np.min(intensity_values))
 
         # Plot the data centres on the map
-        for (lat, long), intensity in zip(coords, intensity_values):
+        for (lat, long), intensity in zip(coords, normalised_intensity_values):
             px, py = self.translate_coordinates_to_pixels(lat, long, src)
             plt.scatter(px, py, color='blue', alpha=intensity)
 
