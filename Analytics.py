@@ -165,17 +165,25 @@ def generate_land_price_image(province_file: str = constants.PROVINCE_LOCATION_F
     return landmass_with_prices
 
 
-def get_best_X(dataframe: pd.DataFrame, X: int, column: str) -> pd.DataFrame:
+def get_best_X(dataframe: pd.DataFrame, X: int, column: str, invert_best = False) -> pd.DataFrame:
     """
     Returns the top X rows of the dataframe, sorted by the specified column
 
     :param dataframe: the dataframe to be sorted
     :param X: the number of rows to return
     :param column: the column to sort by
+    :param invert_best: if True, the top X rows are the worst X rows
     :return: the top X rows of the dataframe
     """
 
-    return dataframe.sort_values(by=column, ascending=False).head(X)
+    # Create a copy of the dataframe
+    dataframe_copy = dataframe.copy()
+
+    # Sort the dataframe by the specified column
+    dataframe_copy.sort_values(by=column, ascending=not invert_best, inplace=True)
+
+    # Return the top X rows
+    return dataframe_copy.head(X)
 
 
 def score_sites(dataframe: pd.DataFrame) -> pd.DataFrame:
