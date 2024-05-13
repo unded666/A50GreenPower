@@ -181,6 +181,7 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                              src=solar_src,
                                                              img=solar_image,
                                                              intensity_column='Total Land Price (R)',
+                                                             invert_preference=True,
                                                              title='Preferred Data Centre Locations',
                                                              zoombounds=(0, 1600, 2200, 0),
                                                              cmap='viridis',

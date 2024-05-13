@@ -109,6 +109,7 @@ class ImageManipulation:
                                              src: rasterio.io.DatasetReader,
                                              img: np.ndarray,
                                              intensity_column: str,
+                                             invert_preference: bool = False,
                                              title: str = None,
                                              zoombounds: tuple = None,
                                              cmap = 'hot_r',
@@ -122,6 +123,7 @@ class ImageManipulation:
         :param src: The rasterio source object for the image.
         :param img: The image as a numpy array.
         :param intensity_column: The column in the data centre frame that contains the intensity values.
+        :param invert_preference: Whether or not to invert the preference of the intensity values.
         :param title: The title of the plot.
         :param zoombounds: The bounds of the plot.
         :param cmap: The color map to use.
@@ -148,6 +150,8 @@ class ImageManipulation:
         # Get the intensity values
         intensity_values = np.array(data_centre_frame[intensity_column].to_list())
         normalised_intensity_values = (intensity_values - np.min(intensity_values)) / (np.max(intensity_values) - np.min(intensity_values))
+        if invert_preference:
+            normalised_intensity_values = 1 - normalised_intensity_values
 
         # Plot the data centres on the map
         for (lat, long), intensity in zip(coords, normalised_intensity_values):
