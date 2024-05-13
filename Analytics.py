@@ -124,13 +124,64 @@ def generate_land_price_image(province_file: str = constants.PROVINCE_LOCATION_F
     manipulator = ImageManipulation()
 
     # Get the base shape of the landmass
-    landmass = manipulator.get_base_landmass_shape(PVimage)
+    # landmass = manipulator.get_base_landmass_shape(PVimage)
     landmass_with_prices = manipulator.generate_land_prices(PVimage,
                                                             PVsrc,
                                                             pd.read_excel(property_file),
                                                             province_file)
 
     return landmass_with_prices
+
+
+def run_analysis(outfile: str = None) -> pd.DataFrame:
+    """
+    Runs the full set of analysis. Obtains the PV data from the solar file, and then calculates the expected
+    land required for each data centre. The land price is then estimated, all returned in the output dataframe.
+    If outfile is not None, then the resulting output file is saved to the specified location as an excel file.
+
+    :param outfile: the location to save the output file to (if any)
+    :return: the output dataframe
+    """
+
+    # Read the data from the excel file
+    print ('Reading the data from the excel file')
+    data_centre_wrangler = DataCentreWrangler(constants.DATA_CENTRE_FILE)
+    data_centre_wrangler.wrangle()
+    data_centre_df = data_centre_wrangler.df
+
+    # Get the solar data from the data reader
+    print('Getting the solar data from the data reader')
+    solar_image, solar_transform, solar_src = DataReader(constants.SOLAR_FILE).read_tiff()
+    PV_df = ImageManipulation().get_values_from_tiff(solar_src,
+                                                   solar_image,
+                                                   data_centre_df,
+                                                   output_column='PV')
+
+    # Calculate the expected land required
+    print('Calculating the expected land required')
+    expected_land_df = calculate_required_land(PV_df)
+
+    # find the expected land price
+    property_frame = pd.read_excel(constants.PROP_FILE)
+    # landmass = ImageManipulation().get_base_landmass_shape(solar_image)
+    landmass_with_prices = ImageManipulation().generate_land_prices(solar_image,
+                                                                    solar_src,
+                                                                    property_frame,
+                                                                    constants.PROVINCE_LOCATION_FILE)
+
+    # Add the land price to the expected land dataframe
+    price_df = ImageManipulation().get_values_from_tiff(src=solar_src,
+                                                        img=landmass_with_prices,
+                                                        data_centre_frame=expected_land_df,
+                                                        output_column='Land Price (R per Ha')
+
+
+
+
+
+    # saving the file if required
+    if outfile is not None:
+        price_df.to_excel(outfile)
 
 
 def main():
@@ -152,14 +203,15 @@ def main():
 
 if __name__ == '__main__':
     # main()
-    DC = DataCentreWrangler(constants.DATA_CENTRE_FILE)
-    DC.wrangle()
-    dcf = DC.df
-    s_img, _, s_src = DataReader(constants.YSUM_GHI).read_tiff()
-    img, _, src = DataReader(constants.LAND_USE_FILE).read_tiff(reference_src=s_src, offset=[10, 30])
-    img[img == 0] = np.NaN
-    preference_df = pd.read_excel(constants.LAND_PREF_FILE, sheet_name='Land Use', skiprows=2)
-    img_2 = translate_image_values_by_mapping_frame(img,
-                                                    preference_df,
-                                                    key_column='#',
-                                                    value_column='Implication (Weighting)')
+    # DC = DataCentreWrangler(constants.DATA_CENTRE_FILE)
+    # DC.wrangle()
+    # dcf = DC.df
+    # s_img, _, s_src = DataReader(constants.YSUM_GHI).read_tiff()
+    # img, _, src = DataReader(constants.LAND_USE_FILE).read_tiff(reference_src=s_src, offset=[10, 30])
+    # img[img == 0] = np.NaN
+    # preference_df = pd.read_excel(constants.LAND_PREF_FILE, sheet_name='Land Use', skiprows=2)
+    # img_2 = translate_image_values_by_mapping_frame(img,
+    #                                                 preference_df,
+    #                                                 key_column='#',
+    #                                                 value_column='Implication (Weighting)')
+    run_analysis('./WorkingData/Spreadsheets/testme.xlsx')
