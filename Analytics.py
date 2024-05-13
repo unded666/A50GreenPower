@@ -18,6 +18,31 @@ import constants
 # YSUM_DIF = YSUM_DIR + 'DIF.tif'
 
 
+def analyse_monthly_data(data_centre_wrangler: DataCentreWrangler,
+                         monthly_file_dir: str = constants.MONTHLY_FILE_DIR) -> DataCentreWrangler:
+
+    """
+
+    :param monthly_file_dir:
+    :param data_centre_frame:
+    :return:
+    """
+
+    monthly_files = DataReader(monthly_file_dir).get_all_tiffs(monthly_file_dir)
+    monthly_readers = [DataReader(monthly_file) for monthly_file in monthly_file_dir]
+    long, lat, coords = data_centre_wrangler.get_coordinate_list()
+    dc_df = data_centre_wrangler.df
+
+    for month_i, reader_i in zip (constants.MONTHS, monthly_readers):
+        img_i, _, src_i = reader_i.read_tiff()
+        dc_df[month_i] = [ImageManipulation().get_pixel_value(lat_i, long_i, src_i, img_i) for lat_i, long_i in coords]
+
+    data_centre_wrangler.df['mean'] = data_centre_wrangler.df[constants.MONTHS].mean(axis=1)
+    data_centre_wrangler.df['std'] = data_centre_wrangler.df[constants.MONTHS].std(axis=1)
+
+    return data_centre_wrangler
+
+
 def translate_image_values_by_mapping_frame(image: np.ndarray,
                                             mapping_frame: pd.DataFrame,
                                             key_column: str,
