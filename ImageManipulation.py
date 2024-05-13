@@ -64,7 +64,7 @@ class ImageManipulation:
     def project_data_centres_onto_map(self,
                                       data_centre_frame: pd.DataFrame,
                                       src: rasterio.io.DatasetReader,
-                                      img: np.ndarray,
+                                      img_in: np.ndarray,
                                       title: str = None,
                                       zoombounds: tuple = None,
                                       savefile: str = SAVE_LOCATION):
@@ -73,11 +73,11 @@ class ImageManipulation:
 
         :param data_centre_frame: The data centre frame.
         :param src: The rasterio source object for the image.
-        :param img: The image as a numpy array.
+        :param img_in: The image as a numpy array.
         :return: The data centre frame with the PV values added.
         """
 
-
+        img = img_in.copy()
         # Plot the image
         if zoombounds is None:
             plt.imshow(img, cmap='hot_r')
@@ -102,12 +102,13 @@ class ImageManipulation:
             plt.title(title)
         if savefile is not None:
             plt.savefig(savefile)
+        plt.close()
 
 
     def project_graded_data_centres_onto_map(self,
                                              data_centre_frame: pd.DataFrame,
                                              src: rasterio.io.DatasetReader,
-                                             img: np.ndarray,
+                                             img_in: np.ndarray,
                                              intensity_column: str,
                                              invert_preference: bool = False,
                                              title: str = None,
@@ -121,7 +122,7 @@ class ImageManipulation:
 
         :param data_centre_frame: The data centre frame.
         :param src: The rasterio source object for the image.
-        :param img: The image as a numpy array.
+        :param img_in: The image as a numpy array.
         :param intensity_column: The column in the data centre frame that contains the intensity values.
         :param invert_preference: Whether or not to invert the preference of the intensity values.
         :param title: The title of the plot.
@@ -132,6 +133,7 @@ class ImageManipulation:
         :return: The data centre frame with the PV values added.
         """
 
+        img = img_in.copy()
         # Plot the image
         if zoombounds is None:
             plt.imshow(img, cmap=cmap)
@@ -163,6 +165,7 @@ class ImageManipulation:
             plt.title(title)
         if savefile is not None:
             plt.savefig(savefile)
+        plt.close()
 
 
     def get_pixel_size(self, geotiff_path) -> tuple:

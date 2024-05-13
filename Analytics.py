@@ -220,6 +220,9 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
     # Get the solar data from the data reader
     print('Getting the solar data from the data reader')
     solar_image, solar_transform, solar_src = DataReader(constants.SOLAR_FILE).read_tiff()
+    solar_image = solar_image.astype(float)
+    solar_image[solar_image < 0] = np.NaN
+    solar_base = solar_image.copy()
 
     # get monthly solar data for the data centres
     monthly_wrangler = DataCentreWrangler(constants.DATA_CENTRE_FILE)
@@ -229,17 +232,6 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
     data_centre_df['std'] = monthly_df['std']
     data_centre_df['mean'] = monthly_df['mean']
     data_centre_df['vari_score'] = data_centre_df['std'] / data_centre_df['mean']
-
-
-    bar_df = data_centre_df[['Site', 'mean', 'std']]
-    bar_df.set_index('Site', inplace=True)
-    bar_df.plot(kind='bar')
-    plt.title('Mean and Standard Deviation of Monthly Solar Energy by site')
-    plt.ylabel('Energy (kWh/m^2)')
-    plt.xticks(rotation=80, fontsize=6)
-    plt.tight_layout()
-    plt.savefig('./Data/Output_files/Maps/MonthlySolarEnergy.png', dpi=600)
-    plt.show()
 
     # Get the land use data from the data reader
     land_use_img, _, land_use_src = DataReader(constants.LAND_USE_FILE).read_tiff(reference_src=solar_src,
@@ -280,10 +272,15 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                              mapping_frame=preference_df,
                                                              key_column='#',
                                                              value_column='Implication (Weighting)')
+    price_df = ImageManipulation().get_values_from_tiff(src=solar_src,
+                                                        img=preference_img,
+                                                        data_centre_frame=price_df,
+                                                        output_column='Land Use Preference')
+
     # plot the data centres on a backdrop of solar energy, graded by the variance score
     ImageManipulation().project_graded_data_centres_onto_map(data_centre_frame=price_df,
                                                              src=solar_src,
-                                                             img=solar_image,
+                                                             img_in=solar_base,
                                                              intensity_column='vari_score',
                                                              invert_preference=True,
                                                              title='Preferred Data Centre Locations by solar reliability',
@@ -297,7 +294,7 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
     # plot the data centres on a backdrop of the land preferences
     ImageManipulation().project_data_centres_onto_map(data_centre_frame=price_df,
                                                       src=solar_src,
-                                                      img=preference_img,
+                                                      img_in=preference_img,
                                                       title='Preference by land use',
                                                       zoombounds=constants.ZOOM_BOUNDS,
                                                       savefile='./Data/Output_files/Maps/LandUse.png')
@@ -305,7 +302,7 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
     # plot the data centres by land requirement on a backdrop of the land price
     ImageManipulation().project_graded_data_centres_onto_map(data_centre_frame=price_df,
                                                              src=solar_src,
-                                                             img=landmass_with_prices,
+                                                             img_in=landmass_with_prices,
                                                              intensity_column='Expected Total Land Required',
                                                              invert_preference=True,
                                                              title='Preferred Data Centre Locations by land requirement',
@@ -317,7 +314,7 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
     # plot the graded data centres by cost of developing the land
     ImageManipulation().project_graded_data_centres_onto_map(data_centre_frame=price_df,
                                                              src=solar_src,
-                                                             img=solar_image,
+                                                             img_in=solar_base,
                                                              intensity_column='Total Land Price (R)',
                                                              invert_preference=True,
                                                              title='Preferred Data Centre Locations by cost requirement',
@@ -326,6 +323,51 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                              cbar=False,
                                                              savefile='./Data/Output_files/Maps/CostRequirement.png')
 
+    price_best_land_use = price_df[price_df['Land Use Preference'] > 0]
+    # show the remaining data centres after the filtering by land use preference
+    ImageManipulation().project_data_centres_onto_map(data_centre_frame=price_best_land_use,
+                                                      src=solar_src,
+                                                      img_in=solar_base,
+                                                      title='Data Centre Locations by Solar radiation \nafter removing unwanted sites by land use',
+                                                      zoombounds=constants.ZOOM_BOUNDS,
+                                                      savefile='./Data/Output_files/Maps/LandUseFilter.png')
+
+    price_reliability = get_best_X(dataframe=price_df, X=10, column='vari_score')
+    # show the top 10 most reliable data centres
+    ImageManipulation().project_graded_data_centres_onto_map(data_centre_frame=price_reliability,
+                                                             src=solar_src,
+                                                             img_in=solar_base,
+                                                             intensity_column='Total Land Price (R)',
+                                                             invert_preference=True,
+                                                             title='Most reliable data centres',
+                                                             zoombounds=constants.ZOOM_BOUNDS,
+                                                             cmap='cool',
+                                                             cbar=False,
+                                                             savefile='./Data/Output_files/Maps/Top10Reliable.png')
+
+    reliability_limited = price_df[price_df['vari_score'] < 0.05]
+    # show the data centres with the lowest variance score
+    ImageManipulation().project_graded_data_centres_onto_map(data_centre_frame=reliability_limited,
+                                                             src=solar_src,
+                                                             img_in=solar_base,
+                                                             intensity_column='Total Land Price (R)',
+                                                             invert_preference=True,
+                                                             title='Most cost-effective Data Centres, all with high reliability',
+                                                             zoombounds=constants.ZOOM_BOUNDS,
+                                                             cmap='cool',
+                                                             cbar=False,
+                                                             savefile='./Data/Output_files/Maps/BestCentres.png')
+
+
+
+    bar_df = data_centre_df[['Site', 'mean', 'std']]
+    bar_df.set_index('Site', inplace=True)
+    bar_df.plot(kind='bar')
+    plt.title('Mean and Standard Deviation of Monthly Solar Energy by site')
+    plt.ylabel('Energy (kWh/m^2)')
+    plt.xticks(rotation=80, fontsize=6)
+    plt.tight_layout()
+    plt.savefig('./Data/Output_files/Maps/MonthlySolarEnergy.png', dpi=600)
 
     # saving the file if required
     if outfile is not None:
