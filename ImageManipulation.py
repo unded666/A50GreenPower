@@ -68,6 +68,7 @@ class ImageManipulation:
                                       title: str = None,
                                       zoombounds: tuple = None,
                                       pointsize = None,
+                                      bbox: int = None,
                                       savefile: str = SAVE_LOCATION):
         """
         Projects the data centres onto the map
@@ -78,10 +79,14 @@ class ImageManipulation:
         :param title: The title of the plot.
         :param zoombounds: The bounds of the plot.
         :param pointsize: The size of the points.
+        :param bbox: The size of the image.
+        :param savefile: The location to save the plot.
         :return: The data centre frame with the PV values added.
         """
 
         img = img_in.copy()
+        if not bbox is None:
+            plt.figure(figsize = bbox)
         # Plot the image
         if zoombounds is None:
             plt.imshow(img, cmap='hot_r')
@@ -108,7 +113,10 @@ class ImageManipulation:
         if title is not None:
             plt.title(title)
         if savefile is not None:
-            plt.savefig(savefile)
+            if not bbox is None:
+                plt.savefig(savefile)
+            else:
+                plt.savefig(savefile, bbox_inches='tight')
         plt.close()
 
 
@@ -120,8 +128,8 @@ class ImageManipulation:
                                              invert_preference: bool = False,
                                              title: str = None,
                                              zoombounds: tuple = None,
-                                             cmap = 'hot_r',
-                                             cbar = True,
+                                             cmap='hot_r',
+                                             cbar=True,
                                              savefile: str = SAVE_LOCATION):
         """
         Projects the data centres onto the map with the intensity of the scatter point indicating the relative
