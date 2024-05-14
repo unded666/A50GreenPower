@@ -367,6 +367,18 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                              cbar=False,
                                                              savefile='./Data/Output_files/Maps/CostRequirement.png')
 
+    # plot the graded data centres by detailed cost of developing the land
+    ImageManipulation().project_graded_detailed_data_centres_onto_map(data_centre_frame=price_df,
+                                                                      src=solar_src,
+                                                                      img_in=solar_base,
+                                                                      intensity_column='Total Land Price (R)',
+                                                                      invert_preference=True,
+                                                                      title='Preferred Data Centre Locations by cost requirement',
+                                                                      zoombounds=constants.ZOOM_BOUNDS,
+                                                                      cmap='cool',
+                                                                      cbar=False,
+                                                                      savefile='./Data/Output_files/Maps/CostRequirementDetailed.png')
+
     price_best_land_use = price_df[price_df['Land Use Preference'] > 0]
     # show the remaining data centres after the filtering by land use preference
     ImageManipulation().project_data_centres_onto_map(data_centre_frame=price_best_land_use,

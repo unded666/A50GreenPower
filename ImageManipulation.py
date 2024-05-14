@@ -158,6 +158,9 @@ class ImageManipulation:
         if cbar:
             plt.colorbar()
 
+        # sort the dataframe by the intensity column, sort order depending on the invert_preference flag
+        data_centre_frame = data_centre_frame.sort_values(by=intensity_column, ascending=not invert_preference)
+
         # Get the coordinates of the data centres
         lat = [convert_to_decimal_degrees(L) for L in data_centre_frame['Latitude'].to_list()]
         long = [convert_to_decimal_degrees(L) for L in data_centre_frame['Longitude'].to_list()]
@@ -168,9 +171,6 @@ class ImageManipulation:
         normalised_intensity_values = (intensity_values - np.min(intensity_values)) / (np.max(intensity_values) - np.min(intensity_values))
         if invert_preference:
             normalised_intensity_values = 1 - normalised_intensity_values
-
-        # sort the dataframe by the intensity column, sort order depending on the invert_preference flag
-        data_centre_frame = data_centre_frame.sort_values(by=intensity_column, ascending=not invert_preference)
 
         # Plot all but the 5 most intense points
         for (lat, long), intensity in zip(coords[:-5], normalised_intensity_values[:-5]):
