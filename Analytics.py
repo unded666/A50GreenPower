@@ -277,6 +277,15 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                         data_centre_frame=price_df,
                                                         output_column='Land Use Preference')
 
+    # plot the data centres on a backdrop of solar energy
+    ImageManipulation().project_data_centres_onto_map(data_centre_frame=price_df,
+                                                      src=solar_src,
+                                                      img_in=solar_base,
+                                                      title='Solar Energy Heatmap',
+                                                      zoombounds=constants.ZOOM_BOUNDS,
+                                                      savefile='./Data/Output_files/Maps/SolarWithDCentres.png')
+
+
     # plot the data centres on a backdrop of solar energy, graded by the variance score
     ImageManipulation().project_graded_data_centres_onto_map(data_centre_frame=price_df,
                                                              src=solar_src,
