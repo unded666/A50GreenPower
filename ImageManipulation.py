@@ -67,6 +67,7 @@ class ImageManipulation:
                                       img_in: np.ndarray,
                                       title: str = None,
                                       zoombounds: tuple = None,
+                                      pointsize = None,
                                       savefile: str = SAVE_LOCATION):
         """
         Projects the data centres onto the map
@@ -74,6 +75,9 @@ class ImageManipulation:
         :param data_centre_frame: The data centre frame.
         :param src: The rasterio source object for the image.
         :param img_in: The image as a numpy array.
+        :param title: The title of the plot.
+        :param zoombounds: The bounds of the plot.
+        :param pointsize: The size of the points.
         :return: The data centre frame with the PV values added.
         """
 
@@ -92,10 +96,13 @@ class ImageManipulation:
         long = [convert_to_decimal_degrees(L) for L in data_centre_frame['Longitude'].to_list()]
         coords = [(longitude, latitude) for longitude, latitude in zip(long, lat)]
 
+        # default point size if None given
+        if pointsize is None:
+            pointsize = 4
         # Plot the data centres on the map
         for lat, long in coords:
             px, py = self.translate_coordinates_to_pixels(lat, long, src)
-            plt.scatter(px, py, color='blue')
+            plt.scatter(px, py, color='blue', s=pointsize)
 
         plt.axis('equal')  # Set the aspect ratio of the axes to be equal
         if title is not None:
