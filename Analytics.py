@@ -332,6 +332,15 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                       zoombounds=constants.ZOOM_BOUNDS,
                                                       savefile='./Data/Output_files/Maps/LandPrice.png')
 
+    # plot zoomed in land prices
+    MICROSCOPE = (1300, 550, 1600, 260)
+    ImageManipulation().project_data_centres_onto_map(data_centre_frame=price_df,
+                                                      src=solar_src,
+                                                      img_in=land_price_image,
+                                                      title='Land Price in Rands/Hectare',
+                                                      zoombounds=MICROSCOPE,
+                                                      savefile='./Data/Output_files/Maps/LandPriceZoomed.png')
+
     # plot the graded data centres by cost of developing the land
     ImageManipulation().project_graded_data_centres_onto_map(data_centre_frame=price_df,
                                                              src=solar_src,
