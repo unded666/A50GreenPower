@@ -401,7 +401,7 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                              cbar=False,
                                                              savefile='./Data/Output_files/Maps/Top10Reliable.png')
 
-    reliability_limited = price_df[price_df['vari_score'] < 0.05]
+    reliability_limited = price_df[price_df['vari_score'] < 0.08]
     # show the data centres with the lowest variance score
     ImageManipulation().project_graded_data_centres_onto_map(data_centre_frame=reliability_limited,
                                                              src=solar_src,
@@ -412,7 +412,19 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                              zoombounds=constants.ZOOM_BOUNDS,
                                                              cmap='cool',
                                                              cbar=False,
-                                                             savefile='./Data/Output_files/Maps/BestCentres.png')
+                                                             savefile='./Data/Output_files/Maps/BestCentres8percLenient.png')
+
+    ImageManipulation().project_graded_detailed_data_centres_onto_map(data_centre_frame=reliability_limited,
+                                                                      src=solar_src,
+                                                                      img_in=solar_base,
+                                                                      intensity_column='Total Land Price (R)',
+                                                                      invert_preference=True,
+                                                                      title='Most cost-effective Data Centres, all with high reliability',
+                                                                      zoombounds=constants.ZOOM_BOUNDS,
+                                                                      cmap='cool',
+                                                                      cbar=False,
+                                                                      savefile='./Data/Output_files/Maps/BestCentres8percLenientDetailed.png')
+
 
 
 

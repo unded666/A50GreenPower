@@ -167,20 +167,20 @@ class ImageManipulation:
         coords = [(longitude, latitude) for longitude, latitude in zip(long, lat)]
 
         # Get the intensity values
-        intensity_values = np.array(data_centre_frame[intensity_column].to_list())
+        intensity_values = np.array(data_centre_frame[intensity_column].to_list()[:-5])
         normalised_intensity_values = (intensity_values - np.min(intensity_values)) / (np.max(intensity_values) - np.min(intensity_values))
         if invert_preference:
             normalised_intensity_values = 1 - normalised_intensity_values
 
         # Plot all but the 5 most intense points
-        for (lat, long), intensity in zip(coords[:-5], normalised_intensity_values[:-5]):
+        for (lat, long), intensity in zip(coords[:-5], normalised_intensity_values):
             px, py = self.translate_coordinates_to_pixels(lat, long, src)
             plt.scatter(px, py, color='green', alpha=intensity)
 
         # Plot the 5 most intense points
-        for (lat, long), intensity in zip(coords[-5:], normalised_intensity_values[-5:]):
+        for (lat, long) in coords[-5:]:
             px, py = self.translate_coordinates_to_pixels(lat, long, src)
-            plt.scatter(px, py, color='magenta', alpha=intensity)
+            plt.scatter(px, py, color='magenta')
 
         plt.axis('equal')  # Set the aspect ratio of the axes to be equal
         if title is not None:
