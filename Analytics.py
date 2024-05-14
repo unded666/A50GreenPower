@@ -260,6 +260,9 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                                     property_frame,
                                                                     constants.PROVINCE_LOCATION_FILE)
 
+    # generate a land price image
+    land_price_image = generate_land_price_image()
+
     # Add the land price to the expected land dataframe
     price_df = ImageManipulation().get_values_from_tiff(src=solar_src,
                                                         img=landmass_with_prices,
@@ -272,6 +275,7 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                              mapping_frame=preference_df,
                                                              key_column='#',
                                                              value_column='Implication (Weighting)')
+
     price_df = ImageManipulation().get_values_from_tiff(src=solar_src,
                                                         img=preference_img,
                                                         data_centre_frame=price_df,
@@ -319,6 +323,14 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                              cmap='cool',
                                                              cbar=False,
                                                              savefile='./Data/Output_files/Maps/LandRequirement.png')
+
+    # plot data centres on a map of land price
+    ImageManipulation().project_data_centres_onto_map(data_centre_frame=price_df,
+                                                      src=solar_src,
+                                                      img_in=land_price_image,
+                                                      title='Land Price in Rands/Hectare',
+                                                      zoombounds=constants.ZOOM_BOUNDS,
+                                                      savefile='./Data/Output_files/Maps/LandPrice.png')
 
     # plot the graded data centres by cost of developing the land
     ImageManipulation().project_graded_data_centres_onto_map(data_centre_frame=price_df,
