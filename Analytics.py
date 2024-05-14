@@ -320,7 +320,7 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                              invert_preference=True,
                                                              title='Preferred Data Centre Locations by land requirement',
                                                              zoombounds=constants.ZOOM_BOUNDS,
-                                                             cmap='cool',
+                                                             cmap='PuRd',
                                                              cbar=False,
                                                              savefile='./Data/Output_files/Maps/LandRequirement.png')
 

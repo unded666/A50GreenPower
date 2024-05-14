@@ -119,6 +119,77 @@ class ImageManipulation:
                 plt.savefig(savefile, bbox_inches='tight')
         plt.close()
 
+    def project_graded_detailed_data_centres_onto_map(self,
+                                                      data_centre_frame: pd.DataFrame,
+                                                      src: rasterio.io.DatasetReader,
+                                                      img_in: np.ndarray,
+                                                      intensity_column: str,
+                                                      title: str = None,
+                                                      invert_preference: bool = False,
+                                                      zoombounds: tuple = None,
+                                                      cmap='hot_r',
+                                                      cbar=True,
+                                                      savefile: str = SAVE_LOCATION):
+        """
+        Projects the data centres onto the map with the intensity of the scatter point indicating the relative
+        value of the intensity column of interest at the data centre location. All but the 5 most intense points
+        are plotted on a scale of white to green, with the 5 most intense points plotted in bright pink
+
+        :param data_centre_frame: The data centre frame.
+        :param src: The rasterio source object for the image.
+        :param img_in: the image as a numpy array
+        :param intensity_column: the column in the data centre frame that contains the intensity values
+        :param title: the title of the plot
+        :param invert_preference: whether or not to invert the preference of the intensity values
+        :param zoombounds: the bounds of the plot
+        :param cmap: the color map to use
+        :param cbar: whether or not to include a color bar
+        :param savefile: the location to save the plot
+        """
+
+        img = img_in.copy()
+        # Plot the image
+        if zoombounds is None:
+            plt.imshow(img, cmap=cmap)
+        else:
+            left, bottom, right, top = zoombounds
+            plt.imshow(img[top:bottom, left:right], cmap=cmap)
+
+        if cbar:
+            plt.colorbar()
+
+        # Get the coordinates of the data centres
+        lat = [convert_to_decimal_degrees(L) for L in data_centre_frame['Latitude'].to_list()]
+        long = [convert_to_decimal_degrees(L) for L in data_centre_frame['Longitude'].to_list()]
+        coords = [(longitude, latitude) for longitude, latitude in zip(long, lat)]
+
+        # Get the intensity values
+        intensity_values = np.array(data_centre_frame[intensity_column].to_list())
+        normalised_intensity_values = (intensity_values - np.min(intensity_values)) / (np.max(intensity_values) - np.min(intensity_values))
+        if invert_preference:
+            normalised_intensity_values = 1 - normalised_intensity_values
+
+        # sort the dataframe by the intensity column, sort order depending on the invert_preference flag
+        data_centre_frame = data_centre_frame.sort_values(by=intensity_column, ascending=not invert_preference)
+
+        # Plot all but the 5 most intense points
+        for (lat, long), intensity in zip(coords[:-5], normalised_intensity_values[:-5]):
+            px, py = self.translate_coordinates_to_pixels(lat, long, src)
+            plt.scatter(px, py, color='green', alpha=intensity)
+
+        # Plot the 5 most intense points
+        for (lat, long), intensity in zip(coords[-5:], normalised_intensity_values[-5:]):
+            px, py = self.translate_coordinates_to_pixels(lat, long, src)
+            plt.scatter(px, py, color='magenta', alpha=intensity)
+
+        plt.axis('equal')  # Set the aspect ratio of the axes to be equal
+        if title is not None:
+            plt.title(title)
+        if savefile is not None:
+            plt.savefig(savefile)
+
+        plt.close()
+
 
     def project_graded_data_centres_onto_map(self,
                                              data_centre_frame: pd.DataFrame,
@@ -145,7 +216,6 @@ class ImageManipulation:
         :param cmap: The color map to use.
         :param savefile: The location to save the plot.
         :param cbar: Whether or not to include a color bar.
-        :return: The data centre frame with the PV values added.
         """
 
         img = img_in.copy()
