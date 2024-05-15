@@ -6,6 +6,8 @@ from DataReader import DataCentreWrangler, DataReader, convert_to_decimal_degree
 from ImageManipulation import ImageManipulation
 import rasterio
 import constants
+import folium
+import selenium
 
 # SOLAR_DIR = './Data/Global Solar Atlas/'
 # SOLAR_FILE = SOLAR_DIR + 'PVOUT_Yearly_sum.tif'
@@ -17,6 +19,51 @@ import constants
 # YSUM_DNI = YSUM_DIR + 'DNI.tif'
 # YSUM_DIF = YSUM_DIR + 'DIF.tif'
 
+
+def convert_deg_minutes_string_to_decimal_degrees(deg_minutes_string: str) -> float:
+    """
+    Converts a string in the format 'CD MM.MMM' to decimal degrees. C is the compass direction, D is the degree,
+    and MM.MMM is the minutes. South and West directions are negative.
+
+    :param deg_minutes_string: the string to convert
+    :return: the decimal degrees
+    """
+
+    # Split the string into direction and degree part
+    direction, degree_str = deg_minutes_string[0], deg_minutes_string[1:]
+
+    # Split the degree part into degree and minute
+    degree, minute = map(float, degree_str.split(' '))
+
+    # Convert to decimal degrees
+    decimal_degrees = degree + minute / 60
+
+    # If the direction is South or West, make the result negative
+    if direction in ['S', 'W']:
+        decimal_degrees = -decimal_degrees
+
+    return decimal_degrees
+
+
+def rich_map(location,
+             savefile=constants.TEMP_MAP_FILE,
+             zoom_start=15):
+    """
+    Creates a rich map of the location by using the folium, saving the results to the specified file
+
+    :param location: the location to create the map of
+    :param savefile: the file to save the map to
+    :param zoom_start: the zoom level of the map
+    :return: None
+    """
+    # Create a folium map object
+    m = folium.Map(location=location, zoom_start=zoom_start)
+
+    # Add a marker to the map
+    folium.Marker(location=location, popup='Data Centre').add_to(m)
+
+    # Save the map as an html file
+    m.save('./Data/Output_files/Maps/rich_map.html')
 
 def analyse_monthly_data(data_centre_wrangler: DataCentreWrangler,
                          monthly_file_dir: str = constants.MONTHLY_FILE_DIR) -> DataCentreWrangler:

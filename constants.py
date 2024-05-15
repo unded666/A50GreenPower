@@ -17,6 +17,7 @@ SOLAR_EFFICIENCY = 0.2
 MAX_POP_SCALE = 1.3
 MIN_POP_SCALE = 0.7
 TEMP_FILE = './WorkingData/tempfile.png'
+TEMP_MAP_FILE = './WorkingData/tempmap.png'
 ZOOM_BOUNDS = (0, 1600, 2200, 0)
 MONTHLY_FILE_DIR = './Data/Global Solar Atlas/South-Africa_GISdata_LTAym_YearlyMonthlyTotals_GlobalSolarAtlas-v2_GEOTIFF/South-Africa_GISdata_LTAy_YearlyMonthlyTotals_GlobalSolarAtlas-v2_GEOTIFF/monthly/'
 MONTHS = ['Jan',
@@ -31,3 +32,4 @@ MONTHS = ['Jan',
           'Oct',
           'Nov',
           'Dec']
+GOOGLE_API_KEY='AIzaSyD-9tSrZQ7Q6J9J5jJj6J9J5jJj6J9J5jJ'
