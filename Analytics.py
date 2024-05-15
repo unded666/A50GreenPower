@@ -8,6 +8,8 @@ import rasterio
 import constants
 import folium
 import selenium
+from PIL import Image
+
 
 # SOLAR_DIR = './Data/Global Solar Atlas/'
 # SOLAR_FILE = SOLAR_DIR + 'PVOUT_Yearly_sum.tif'
@@ -28,6 +30,9 @@ def convert_deg_minutes_string_to_decimal_degrees(deg_minutes_string: str) -> fl
     :param deg_minutes_string: the string to convert
     :return: the decimal degrees
     """
+
+    # remove trailing whitespace
+    deg_minutes_string = deg_minutes_string.strip()
 
     # Split the string into direction and degree part
     direction, degree_str = deg_minutes_string[0], deg_minutes_string[1:]
@@ -397,6 +402,13 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                         bbox=(12, 8),
                                                         pointsize=1,
                                                         savefile=constants.TEMP_FILE)
+
+    price_df['coordinates'] = price_df.apply(lambda x: [convert_deg_minutes_string_to_decimal_degrees(x['Latitude']),
+                                                        convert_deg_minutes_string_to_decimal_degrees(x['Longitude'])], axis=1)
+
+    rich_map(location=price_df['coordinates'][0],
+             savefile=constants.TEMP_MAP_FILE,
+             zoom_start=15)
 
     temp_img = plt.imread(constants.TEMP_FILE)
     zoomed_image = temp_img[250:350, 600:700, :]
