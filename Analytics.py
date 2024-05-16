@@ -7,6 +7,7 @@ from ImageManipulation import ImageManipulation
 import rasterio
 import constants
 import folium
+from FoliumSaver import folium_saver
 import selenium
 from PIL import Image
 
@@ -51,24 +52,30 @@ def convert_deg_minutes_string_to_decimal_degrees(deg_minutes_string: str) -> fl
 
 
 def rich_map(location,
-             savefile=constants.TEMP_MAP_FILE,
-             zoom_start=15):
+             zoom_start=15,
+             marker_locations=None,
+             marker_labels=None) -> folium.Map:
     """
-    Creates a rich map of the location by using the folium, saving the results to the specified file
+    Creates a rich map of the location by using the folium, returning a map complete with markers and annotations
 
     :param location: the location to create the map of
-    :param savefile: the file to save the map to
     :param zoom_start: the zoom level of the map
+    :param marker_locations: the locations of the markers to add to the map
+    :param marker_labels: the labels of the markers to add to the map
     :return: None
     """
     # Create a folium map object
     m = folium.Map(location=location, zoom_start=zoom_start)
 
-    # Add a marker to the map
-    folium.Marker(location=location, popup='Data Centre').add_to(m)
+    # add markers and labels to the map
+    # if marker_locations is not None and marker_labels is not None:
+    #     for location, label in zip(marker_locations, marker_labels):
+    #         folium.CircleMarker(location=location, popup=label, color='blue').add_to(m)
+    #         folium.Marker(location=location,
+    #                       popup=label,
+    #                       icon=folium.DivIcon(html='<div style="font-size: 12pt">%s</div>' % label).add_to(m))
 
-    # Save the map as an html file
-    m.save('./Data/Output_files/Maps/rich_map.html')
+    return m
 
 def analyse_monthly_data(data_centre_wrangler: DataCentreWrangler,
                          monthly_file_dir: str = constants.MONTHLY_FILE_DIR) -> DataCentreWrangler:
@@ -403,12 +410,18 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                         pointsize=1,
                                                         savefile=constants.TEMP_FILE)
 
-    price_df['coordinates'] = price_df.apply(lambda x: [convert_deg_minutes_string_to_decimal_degrees(x['Latitude']),
-                                                        convert_deg_minutes_string_to_decimal_degrees(x['Longitude'])], axis=1)
+    price_df['coordinates'] = price_df.apply(lambda x: [convert_deg_minutes_string_to_decimal_degrees(x['Longitude']),
+                                                        convert_deg_minutes_string_to_decimal_degrees(x['Latitude'])], axis=1)
 
-    rich_map(location=price_df['coordinates'][0],
-             savefile=constants.TEMP_MAP_FILE,
-             zoom_start=15)
+    marker_locations = price_df['coordinates'].tolist()
+    marker_labels = price_df['Site'].tolist()
+
+    sa_det_map = rich_map(location=constants.RSA_LOCATION,
+                          zoom_start=6,
+                          marker_locations=marker_locations,
+                          marker_labels=marker_labels)
+
+    folium_saver(sa_det_map, constants.TEMP_MAP_HTML, './Data/Output_files/Maps/SAmap.png')
 
     temp_img = plt.imread(constants.TEMP_FILE)
     zoomed_image = temp_img[250:350, 600:700, :]

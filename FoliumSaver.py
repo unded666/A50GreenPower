@@ -12,7 +12,11 @@ def folium_saver(map: folium.Map, temp_file_path=constants.TEMP_MAP_HTML, save_f
     :param file_path: file path to save the folium map
     :return: None
     """
-    map.save(temp_file_path)
+    # Create a Figure and add the Map to it
+    fig = folium.Figure()
+    fig.add_child(map)
+
+    fig.save(temp_file_path)
 
     # Convert the relative path to an absolute path, then to a URL
     file_url = Path(temp_file_path).absolute().as_uri()
@@ -30,5 +34,3 @@ if __name__ == '__main__':
     m = folium.Map(location=constants.RSA_LOCATION, zoom_start=6)
     folium_saver(m)
     print('Done')
-
-
