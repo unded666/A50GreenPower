@@ -68,12 +68,12 @@ def rich_map(location,
     m = folium.Map(location=location, zoom_start=zoom_start)
 
     # add markers and labels to the map
-    # if marker_locations is not None and marker_labels is not None:
-    #     for location, label in zip(marker_locations, marker_labels):
-    #         folium.CircleMarker(location=location, popup=label, color='blue').add_to(m)
-    #         folium.Marker(location=location,
-    #                       popup=label,
-    #                       icon=folium.DivIcon(html='<div style="font-size: 12pt">%s</div>' % label).add_to(m))
+    if marker_locations is not None and marker_labels is not None:
+        for location, label in zip(marker_locations, marker_labels):
+            folium.CircleMarker(location=location, popup=label, color='blue', radius=2).add_to(m)
+            folium.Marker(location=location,
+                          popup=label,
+                          icon=folium.DivIcon(html='<div style="font-size: 8pt">%s</div>' % label)).add_to(m)
 
     return m
 

@@ -32,5 +32,6 @@ def folium_saver(map: folium.Map, temp_file_path=constants.TEMP_MAP_HTML, save_f
 
 if __name__ == '__main__':
     m = folium.Map(location=constants.RSA_LOCATION, zoom_start=6)
+    folium.CircleMarker(location=[-29, 25], radius=10, color='red').add_to(m)
     folium_saver(m)
     print('Done')
