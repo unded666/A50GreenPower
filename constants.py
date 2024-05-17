@@ -35,3 +35,4 @@ MONTHS = ['Jan',
           'Dec']
 GOOGLE_API_KEY='AIzaSyD-9tSrZQ7Q6J9J5jJj6J9J5jJj6J9J5jJ'
 RSA_LOCATION = [-29, 25]
+SOLAR_MIN_FILE = './WorkingData/Maps/SolarAlone.png'

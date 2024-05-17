@@ -513,6 +513,83 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
     if outfile is not None:
         price_df.to_excel(outfile)
 
+def folium_overlay(map: folium.Map,
+                   overlay_path: str,
+                   overlay_src: rasterio.io.DatasetReader,
+                   overlay_stretch: tuple = (0, 0),
+                   overlay_offset: tuple = (0, 0),
+                   overlay_opacity: float = 0.3) -> folium.Map:
+
+    """
+    Overlays an image on a folium map, using the offset and stretch parameters to orient the overlay.
+    :param map:  folium map object
+    :param overlay_path: path to the overlay image
+    :param overlay_src: rasterio source object
+    :param overlay_stretch: tuple of stretch parameters. expected is (x_stretch, y_stretch
+    :param overlay_offset: tuple of offset parameters. expected is (x_offset, y_offset)
+    :param overlay_opacity: opacity of the overlay
+    :return: folium map object
+    """
+
+    # Read in the overlay image
+    # overlay_img, _, _ = DataReader(overlay_path).read_tiff()
+    bound_X0, bound_Y1, bound_X1, bound_Y0 = constants.ZOOM_BOUNDS
+    left, top = overlay_src.transform * (bound_X1, bound_Y1)
+    right, bottom = overlay_src.transform * (bound_X0, bound_Y0)
+    folium.raster_layers.ImageOverlay(image=overlay_path,
+                                      bounds=[[top + overlay_offset[1] - overlay_stretch[1], left + overlay_offset[0] + overlay_stretch[0]],
+                                              [bottom + overlay_offset[1] + overlay_stretch[1], right + overlay_offset[0] - overlay_stretch[0]]],
+                                      opacity=overlay_opacity).add_to(map)
+
+    return map
+
+
+
+
+def run_bespoke_analysis():
+
+    solar_image, solar_transform, solar_src = DataReader(constants.SOLAR_FILE).read_tiff()
+    solar_image = solar_image.astype(float)
+    solar_image[solar_image < 0] = np.NaN
+
+    property_frame = pd.read_excel(constants.PROP_FILE)
+
+    landmass_with_prices = ImageManipulation().generate_land_prices(solar_image,
+                                                                    solar_src,
+                                                                    property_frame,
+                                                                    constants.PROVINCE_LOCATION_FILE)
+
+    zoombounds = constants.ZOOM_BOUNDS
+    CMAP = 'Greens'
+
+    img = solar_image.copy()
+    # Plot the image
+    if zoombounds is None:
+        plt.imshow(img, cmap=CMAP)
+    else:
+        left, bottom, right, top = zoombounds
+        plt.imshow(img[top:bottom, left:right], cmap=CMAP)
+
+    plt.axis('off')
+
+
+    # plt.axis('equal')  # Set the aspect ratio of the axes to be equal
+
+    savefile = constants.SOLAR_MIN_FILE
+    if savefile is not None:
+        plt.savefig(savefile)
+    plt.close()
+
+    # Create a folium map object
+    map = folium.Map(location=constants.RSA_LOCATION, zoom_start=6)
+    map = folium_overlay(map=map,
+                         overlay_path=constants.SOLAR_MIN_FILE,
+                         overlay_src=solar_src,
+                         overlay_stretch=(2.6, 2.1),
+                         overlay_offset=(-0.35, 0.3),
+                         overlay_opacity=0.3)
+
+    folium_saver(map, constants.TEMP_MAP_HTML, './Data/Output_files/Maps/SolarOverlay.png')
 
 def main():
     # Read the data from the excel file
@@ -529,8 +606,6 @@ def main():
     manip = ImageManipulation(save_location='./WorkingData/Maps/')
     solar_enriched_df = manip.get_PV_from_tiff(solar_src, solar_image, data_centre_wrangler.df)
 
-
-
 if __name__ == '__main__':
     # main()
     # DC = DataCentreWrangler(constants.DATA_CENTRE_FILE)
@@ -544,4 +619,5 @@ if __name__ == '__main__':
     #                                                 preference_df,
     #                                                 key_column='#',
     #                                                 value_column='Implication (Weighting)')
-    run_analysis('./Data/Output_files/Spreadsheets/outfile.xlsx')
+    # run_analysis('./Data/Output_files/Spreadsheets/outfile.xlsx')
+    run_bespoke_analysis()
