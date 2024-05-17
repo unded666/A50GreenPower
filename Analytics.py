@@ -51,6 +51,8 @@ def convert_deg_minutes_string_to_decimal_degrees(deg_minutes_string: str) -> fl
     return decimal_degrees
 
 
+
+
 def rich_map(location,
              zoom_start=15,
              marker_locations=None,
