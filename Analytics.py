@@ -181,9 +181,13 @@ def calculate_required_land(centre_frame: pd.DataFrame) -> pd.DataFrame:
     centre_frame_copy['EnergyPerSqM'] = centre_frame_copy['PV'] * constants.SOLAR_EFFICIENCY
     centre_frame_copy['Expected Total Land Required'] = (centre_frame_copy['Total Annual Power Consumption'] /
                                                    centre_frame_copy['EnergyPerSqM'])
+    centre_frame_copy['Adjusted Total Land Required'] = (centre_frame_copy.apply
+                                                         (lambda x: x['Expected Total Land Required'] * (1 + x['vari_score']), axis=1))
+
+
     # Replace NaNs in total available land with 0
     centre_frame_copy['Total Available Land'] = centre_frame_copy['Total Available Land'].fillna(0)
-    centre_frame_copy['Excess Land Required'] = (centre_frame_copy['Expected Total Land Required'] -
+    centre_frame_copy['Excess Land Required'] = (centre_frame_copy['Adjusted Total Land Required'] -
                                                 centre_frame_copy['Total Available Land'])
 
     # Drop the 'EnergyPerSqM' column
@@ -621,5 +625,5 @@ if __name__ == '__main__':
     #                                                 preference_df,
     #                                                 key_column='#',
     #                                                 value_column='Implication (Weighting)')
-    # run_analysis('./Data/Output_files/Spreadsheets/outfile.xlsx')
-    run_bespoke_analysis()
+    run_analysis('./Data/Output_files/Spreadsheets/outfile.xlsx')
+    # run_bespoke_analysis()
