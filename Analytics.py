@@ -106,7 +106,8 @@ def analyse_monthly_data(data_centre_wrangler: DataCentreWrangler,
 def translate_image_values_by_mapping_frame(image: np.ndarray,
                                             mapping_frame: pd.DataFrame,
                                             key_column: str,
-                                            value_column: str) -> np.ndarray:
+                                            value_column: str,
+                                            default_value = 0.6) -> np.ndarray:
 
     """
     Translates the values in the image using the mapping frame. The mapping frame contains the key column
@@ -130,7 +131,7 @@ def translate_image_values_by_mapping_frame(image: np.ndarray,
     all_keys = list(mapping_dict.keys())
     for key in np.unique(image_copy):
         if key not in all_keys and np.isnan(key) == False:
-            mapping_dict[int(key)] = 0
+            mapping_dict[int(key)] = default_value
 
     # Translate the values in the image
     for key, value in mapping_dict.items():
@@ -396,15 +397,6 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                       title='Land Price in Rands/Hectare',
                                                       zoombounds=constants.ZOOM_BOUNDS,
                                                       savefile='./Data/Output_files/Maps/LandPrice.png')
-
-    # plot zoomed in land prices
-    # MICROSCOPE = (1300, 550, 1600, 260)
-    # ImageManipulation().project_data_centres_onto_map(data_centre_frame=price_df,
-    #                                                   src=solar_src,
-    #                                                   img_in=land_price_image,
-    #                                                   title='Land Price in Rands/Hectare',
-    #                                                   zoombounds=MICROSCOPE,
-    #                                                   savefile='./Data/Output_files/Maps/LandPriceZoomed.png')
 
     # create a high-resolution map of the land price, saved to the temporary file
     ImageManipulation().project_data_centres_onto_map(data_centre_frame=price_df,
