@@ -36,3 +36,5 @@ MONTHS = ['Jan',
 RSA_LOCATION = [-29, 25]
 SOLAR_MIN_FILE = './WorkingData/Maps/SolarAlone.png'
 EXCEL_OUTPUT_FILE = './Data/Output_files/Spreadsheets/outfile.xlsx'
+LAND_PRICE_MIN_FILE = './WorkingData/Maps/LandPriceAlone.png'
+LAND_REQUIREMENT_OUTPUT = './Data/Output_files/Maps/LandRequirement.png'

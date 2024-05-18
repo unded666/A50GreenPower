@@ -22,6 +22,25 @@ from PIL import Image
 # YSUM_DNI = YSUM_DIR + 'DNI.tif'
 # YSUM_DIF = YSUM_DIR + 'DIF.tif'
 
+def save_minimal_image(image: np.ndarray,
+                       savefile: str,
+                       zoombounds: tuple = constants.ZOOM_BOUNDS,
+                       cmap: str = 'Greens') -> None:
+
+    """
+    Saves a minimal image of the image, with the specified zoom bounds and colour map.
+
+    :param image: the image to save
+    :param savefile: the location to save the image to
+    :param zoombounds: the zoom bounds of the image
+    :param cmap: the colour map of the image
+    :return:
+    """
+
+    left, bottom, right, top = zoombounds
+    plt.imshow(image[top:bottom, left:right], cmap=cmap)
+    plt.axis('off')
+    plt.savefig(savefile)
 
 def convert_deg_minutes_string_to_decimal_degrees(deg_minutes_string: str) -> float:
     """
@@ -355,6 +374,36 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                       zoombounds=constants.ZOOM_BOUNDS,
                                                       savefile='./Data/Output_files/Maps/SolarWithDCentres.png')
 
+    # create minimal land price file
+    save_minimal_image(image=land_price_image,
+                       savefile=constants.LAND_PRICE_MIN_FILE,
+                       zoombounds=constants.ZOOM_BOUNDS,
+                       cmap='Greens')
+
+
+    # plot data centres on a folium map of RSA, with land requirement as an intensity value for the data centre markers
+    # and an overlay of land price
+
+    O1_map = folium.Map(location=constants.RSA_LOCATION, zoom_start=6)
+    O1_map = folium_overlay(map=O1_map,
+                            overlay_path=constants.LAND_PRICE_MIN_FILE,
+                            overlay_src=solar_src,
+                            overlay_stretch=(2.6, 2.1),
+                            overlay_offset=(-0.35, 0.3),
+                            overlay_opacity=0.5)
+
+    O1_map = ImageManipulation().project_data_centres_onto_folium_map(data_centre_frame=price_df,
+                                                                      map=O1_map,
+                                                                      title='Data Centre Locations by Land Requirement',
+                                                                      pointsize=5,
+                                                                      intensity_column='Adjusted Total Land Required',
+                                                                      label_column='Site',
+                                                                      hide_labels=True,
+                                                                      colour_variation=True)
+    folium_saver(O1_map, constants.TEMP_MAP_HTML, constants.LAND_REQUIREMENT_OUTPUT)
+
+
+
 
     # plot the data centres on a backdrop of solar energy, graded by the variance score
     ImageManipulation().project_graded_data_centres_onto_map(data_centre_frame=price_df,
@@ -388,7 +437,7 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                              zoombounds=constants.ZOOM_BOUNDS,
                                                              cmap='PuRd',
                                                              cbar=False,
-                                                             savefile='./Data/Output_files/Maps/LandRequirement.png')
+                                                             savefile='./Data/Output_files/Maps/LandRequirementSimple.png')
 
     # plot data centres on a map of land price
     ImageManipulation().project_data_centres_onto_map(data_centre_frame=price_df,
@@ -628,5 +677,5 @@ if __name__ == '__main__':
     #                                                 preference_df,
     #                                                 key_column='#',
     #                                                 value_column='Implication (Weighting)')
-    # run_analysis('./Data/Output_files/Spreadsheets/outfile.xlsx')
-    run_bespoke_analysis()
+    run_analysis(constants.EXCEL_OUTPUT_FILE)
+    # run_bespoke_analysis()
