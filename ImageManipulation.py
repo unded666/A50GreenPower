@@ -20,6 +20,30 @@ from constants import (SAVE_LOCATION,
                        YSUM_GHI)
 
 
+def create_ordinal_list(floating_list: float) -> list:
+    """
+    Converts a floating point list to an ordinal list, where the elements are in the original order, but
+    are converted to integers that represent their place in an ordered list.
+
+    :param floating_list: the list to convert
+    :return: the ordinal list
+    """
+
+    # Create a copy of the list
+    ordinal_list = floating_list.copy()
+
+    # Sort the list
+    ordinal_list.sort()
+
+    # Create a dictionary that maps the original values to their ordinal values
+    ordinal_dict = {value: i for i, value in enumerate(ordinal_list)}
+
+    # Convert the original values to their ordinal values
+    ordinal_list = [ordinal_dict[value] for value in floating_list]
+
+    return ordinal_list
+
+
 class ImageManipulation:
     def __init__(self, save_location=SAVE_LOCATION):
         self.save_location = save_location
@@ -127,6 +151,7 @@ class ImageManipulation:
                                              pointsize: float = None,
                                              intensity_column: str = None,
                                              static_intensity: bool = False,
+                                             ordinal_intensity = False,
                                              label_column: str = None,
                                              hide_labels: bool = False,
                                              colour_variation: bool = False,
@@ -141,6 +166,7 @@ class ImageManipulation:
         :param pointsize: The size of the points.
         :param intensity_column: The column in the data centre frame that contains the intensity values.
         :param static_intensity: Whether or not to use a static intensity value.
+        :param ordinal_intensity: Whether or not to use ordinal intensity values.
         :param label_column: The column in the data centre frame that contains the labels.
         :param hide_labels: Whether or not to hide the labels.
         :param colour_variation: Whether or not to vary the colour of the markers.
@@ -159,6 +185,8 @@ class ImageManipulation:
         marker_labels = data_centre_frame[label_column].to_list()
         marker_locations = coords
         intensities = data_centre_frame[intensity_column].to_list()
+        if ordinal_intensity:
+            intensities = create_ordinal_list(intensities)
         # modify intensities to be a scale of 1 to 10, spanning the range of the data
         intensities = (intensities - np.min(intensities)) / (np.max(intensities) - np.min(intensities)) * 9 + 1
         if invert_intensity:
