@@ -42,6 +42,35 @@ def save_minimal_image(image: np.ndarray,
     plt.axis('off')
     plt.savefig(savefile)
 
+def plot_zoomed_image(location: tuple,
+                      overlay_path: str,
+                      overlay_src: rasterio.io.DatasetReader,
+                      overlay_stretch: tuple = (2.6, 2.1),
+                      overlay_offset: tuple = (-0.35, 0.3),
+                      overlay_opacity: float = 0.5) -> folium.Map:
+
+    """
+
+    :param location:
+    :param overlay_path:
+    :param overlay_src:
+    :param overlay_stretch:
+    :param overlay_offset:
+    :param overlay_opacity:
+    :return:
+    """
+
+    map = folium.Map(location=location, zoom_start=13)
+    map = folium_overlay(map=map,
+                            overlay_path=overlay_path,
+                            overlay_src=overlay_src,
+                            overlay_stretch=overlay_stretch,
+                            overlay_offset=overlay_offset,
+                            overlay_opacity=overlay_opacity)
+    folium.CircleMarker(location=location, radius=10, fill=True, color='Purple').add_to(map)
+
+    return map
+
 def convert_deg_minutes_string_to_decimal_degrees(deg_minutes_string: str) -> float:
     """
     Converts a string in the format 'CD MM.MMM' to decimal degrees. C is the compass direction, D is the degree,
@@ -436,23 +465,29 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
 
     # Zoom in somewhere for glory!
     loc = price_df.coordinates[0]
-    O3_map = folium.Map(location=loc, zoom_start=13)
-    O3 = folium_overlay(map=O3_map,
-                        overlay_path=constants.LAND_PRICE_MIN_FILE,
-                        overlay_src=solar_src,
-                        overlay_stretch=(2.6, 2.1),
-                        overlay_offset=(-0.35, 0.3),
-                        overlay_opacity=0.5)
-    ImageManipulation().project_data_centres_onto_folium_map(data_centre_frame=price_df,
-                                                             map=O3_map,
-                                                             title='Data Centre Locations by Cost',
-                                                             pointsize=8,
-                                                             intensity_column='Total Land Price (R)',
-                                                             static_intensity=True,
-                                                             label_column='Site',
-                                                             hide_labels=False,
-                                                             colour_variation=False,
-                                                             invert_intensity=False)
+    # O3_map = folium.Map(location=loc, zoom_start=13)
+    # O3 = folium_overlay(map=O3_map,
+    #                     overlay_path=constants.LAND_PRICE_MIN_FILE,
+    #                     overlay_src=solar_src,
+    #                     overlay_stretch=(2.6, 2.1),
+    #                     overlay_offset=(-0.35, 0.3),
+    #                     overlay_opacity=0.5)
+    # ImageManipulation().project_data_centres_onto_folium_map(data_centre_frame=price_df,
+    #                                                          map=O3_map,
+    #                                                          title='Data Centre Locations by Cost',
+    #                                                          pointsize=8,
+    #                                                          intensity_column='Total Land Price (R)',
+    #                                                          static_intensity=True,
+    #                                                          label_column='Site',
+    #                                                          hide_labels=False,
+    #                                                          colour_variation=False,
+    #                                                          invert_intensity=False)
+    O3_map = plot_zoomed_image(location=loc,
+                           overlay_path=constants.LAND_PRICE_MIN_FILE,
+                           overlay_src=solar_src,
+                           overlay_stretch=(2.6, 2.1),
+                           overlay_offset=(-0.35, 0.3),
+                           overlay_opacity=0.5)
     folium_saver(O3_map, constants.TEMP_MAP_HTML, './WorkingData/Maps/ZoomedCostMap.png')
 
 
