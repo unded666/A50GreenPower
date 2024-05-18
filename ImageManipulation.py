@@ -7,6 +7,7 @@ from rasterio.features import shapes, geometry_mask
 from rasterio.warp import reproject, Resampling
 from shapely.geometry import Point
 import geopandas as gpd
+import folium
 from DataReader import DataCentreWrangler, DataReader, convert_to_decimal_degrees
 from constants import (SAVE_LOCATION,
                        DEGREEE_TO_METER,
@@ -118,6 +119,66 @@ class ImageManipulation:
             else:
                 plt.savefig(savefile, bbox_inches='tight')
         plt.close()
+
+    def project_data_centres_onto_folium_map(self,
+                                             data_centre_frame: pd.DataFrame,
+                                             map: folium.Map,
+                                             title: str = None,
+                                             pointsize: float = None,
+                                             intensity_column: str = None,
+                                             label_column: str = None,
+                                             hide_labels: bool = False,
+                                             colour_variation: bool = False) -> folium.Map:
+        """
+        Projects the data centres onto the folium map as markers. The colout variation checks if the available land is
+        sufficient to meet the land requirement, and changes the colour of the marker to a secondary colour if it is.
+
+        :param data_centre_frame: The data centre frame.
+        :param map: The folium map object.
+        :param title: The title of the plot.
+        :param pointsize: The size of the points.
+        :param intensity_column: The column in the data centre frame that contains the intensity values.
+        :param label_column: The column in the data centre frame that contains the labels.
+        :param hide_labels: Whether or not to hide the labels.
+        :param colour_variation: Whether or not to vary the colour of the markers.
+        :return: The folium map object with the data centres added.
+        """
+
+        # Get the coordinates of the data centres
+        lat = [convert_to_decimal_degrees(L) for L in data_centre_frame['Latitude'].to_list()]
+        long = [convert_to_decimal_degrees(L) for L in data_centre_frame['Longitude'].to_list()]
+        coords = [(longitude, latitude) for longitude, latitude in zip(long, lat)]
+
+        # default point size if None given
+        if pointsize is None:
+            pointsize = 4
+
+        marker_labels = data_centre_frame[label_column].to_list()
+        marker_locations = coords
+        intensities = data_centre_frame[intensity_column].to_list()
+        # modify intensities to be a scale of 1 to 10, spanning the range of the data
+        intensities = (intensities - np.min(intensities)) / (np.max(intensities) - np.min(intensities)) * 9 + 1
+        # handle colour variation
+        if colour_variation:
+            # get the land availability column
+            land_requirement = data_centre_frame['Adjusted Total Land Required'].to_list()
+            land_available = data_centre_frame['Total Available Land'].to_list()
+            # change the colour of the markers if the land is available
+            marker_colour = ['purple' if land_req > land_avail else 'blue' for
+                             land_req, land_avail in zip(land_requirement, land_available)]
+
+        else:
+            marker_colour = ['blue' for _ in range(len(marker_locations))]
+        # add the data centres to the map as markers
+        for location, label, intensity, colour in zip(marker_locations, marker_labels, intensities, marker_colour):
+            folium.CircleMarker(location=location, popup=label, radius = intensity, color=colour).add_to(map)
+            if not hide_labels:
+                folium.Marker(location=location,
+                              popup=label,
+                              icon=folium.DivIcon(html='<div style="font-size: 8pt">%s</div>' % label)).add_to(map)
+
+
+        return map
 
     def project_graded_detailed_data_centres_onto_map(self,
                                                       data_centre_frame: pd.DataFrame,

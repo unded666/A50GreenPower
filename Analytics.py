@@ -586,6 +586,8 @@ def run_bespoke_analysis():
         plt.savefig(savefile)
     plt.close()
 
+    df = pd.read_excel(constants.EXCEL_OUTPUT_FILE)
+
     # Create a folium map object
     map = folium.Map(location=constants.RSA_LOCATION, zoom_start=6)
     map = folium_overlay(map=map,
@@ -594,6 +596,15 @@ def run_bespoke_analysis():
                          overlay_stretch=(2.6, 2.1),
                          overlay_offset=(-0.35, 0.3),
                          overlay_opacity=0.3)
+
+    map = ImageManipulation().project_data_centres_onto_folium_map(data_centre_frame=df,
+                                                                   map=map,
+                                                                   title='Whatever',
+                                                                   pointsize=5,
+                                                                   intensity_column='Adjusted Total Land Required',
+                                                                   label_column='Site',
+                                                                   hide_labels=True,
+                                                                   colour_variation=True)
 
     folium_saver(map, constants.TEMP_MAP_HTML, './Data/Output_files/Maps/SolarOverlay.png')
 
@@ -625,5 +636,5 @@ if __name__ == '__main__':
     #                                                 preference_df,
     #                                                 key_column='#',
     #                                                 value_column='Implication (Weighting)')
-    run_analysis('./Data/Output_files/Spreadsheets/outfile.xlsx')
-    # run_bespoke_analysis()
+    # run_analysis('./Data/Output_files/Spreadsheets/outfile.xlsx')
+    run_bespoke_analysis()
