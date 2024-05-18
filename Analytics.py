@@ -327,7 +327,6 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
     preference_df = pd.read_excel(constants.LAND_PREF_FILE, sheet_name='Land Use', skiprows=2)
 
 
-
     PV_df = ImageManipulation().get_values_from_tiff(solar_src,
                                                    solar_image,
                                                    data_centre_df,
@@ -366,6 +365,12 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                         data_centre_frame=price_df,
                                                         output_column='Land Use Preference')
 
+    price_df['coordinates'] = price_df.apply(lambda x: [convert_deg_minutes_string_to_decimal_degrees(x['Longitude']),
+                                                        convert_deg_minutes_string_to_decimal_degrees(x['Latitude'])], axis=1)
+
+    marker_locations = price_df['coordinates'].tolist()
+    marker_labels = price_df['Site'].tolist()
+
     # plot the data centres on a backdrop of solar energy
     ImageManipulation().project_data_centres_onto_map(data_centre_frame=price_df,
                                                       src=solar_src,
@@ -403,6 +408,53 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
     folium_saver(O1_map, constants.TEMP_MAP_HTML, constants.LAND_REQUIREMENT_OUTPUT)
 
     # second big output is cost centre prices
+    save_minimal_image(image=land_use_img,
+                       savefile=constants.LAND_USE_MIN_FILE,
+                       zoombounds=constants.ZOOM_BOUNDS,
+                       cmap='Greens')
+
+    O2_map = folium.Map(location=constants.RSA_LOCATION, zoom_start=6)
+    O2_map = folium_overlay(map=O2_map,
+                            overlay_path=constants.LAND_USE_MIN_FILE,
+                            overlay_src=solar_src,
+                            overlay_stretch=(2.6, 2.1),
+                            overlay_offset=(-0.35, 0.3),
+                            overlay_opacity=0.5)
+
+    ImageManipulation().project_data_centres_onto_folium_map(data_centre_frame=price_df,
+                                                             map=O2_map,
+                                                             title='Data Centre Locations by Cost',
+                                                             pointsize=5,
+                                                             intensity_column='Total Land Price (R)',
+                                                             label_column='Site',
+                                                             hide_labels=True,
+                                                             colour_variation=False,
+                                                             invert_intensity=True)
+
+    folium_saver(O2_map, constants.TEMP_MAP_HTML, constants.LAND_COST_OUTPUT)
+
+
+    # Zoom in somewhere for glory!
+    loc = price_df.coordinates[0]
+    O3_map = folium.Map(location=loc, zoom_start=13)
+    O3 = folium_overlay(map=O3_map,
+                        overlay_path=constants.LAND_PRICE_MIN_FILE,
+                        overlay_src=solar_src,
+                        overlay_stretch=(2.6, 2.1),
+                        overlay_offset=(-0.35, 0.3),
+                        overlay_opacity=0.5)
+    ImageManipulation().project_data_centres_onto_folium_map(data_centre_frame=price_df,
+                                                             map=O3_map,
+                                                             title='Data Centre Locations by Cost',
+                                                             pointsize=8,
+                                                             intensity_column='Total Land Price (R)',
+                                                             static_intensity=True,
+                                                             label_column='Site',
+                                                             hide_labels=False,
+                                                             colour_variation=False,
+                                                             invert_intensity=False)
+    folium_saver(O3_map, constants.TEMP_MAP_HTML, './WorkingData/Maps/ZoomedCostMap.png')
+
 
 
     # plot the data centres on a backdrop of solar energy, graded by the variance score
@@ -457,11 +509,6 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                         pointsize=1,
                                                         savefile=constants.TEMP_FILE)
 
-    price_df['coordinates'] = price_df.apply(lambda x: [convert_deg_minutes_string_to_decimal_degrees(x['Longitude']),
-                                                        convert_deg_minutes_string_to_decimal_degrees(x['Latitude'])], axis=1)
-
-    marker_locations = price_df['coordinates'].tolist()
-    marker_labels = price_df['Site'].tolist()
 
     sa_det_map = rich_map(location=constants.RSA_LOCATION,
                           zoom_start=6,

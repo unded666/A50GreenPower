@@ -126,6 +126,7 @@ class ImageManipulation:
                                              title: str = None,
                                              pointsize: float = None,
                                              intensity_column: str = None,
+                                             static_intensity: bool = False,
                                              label_column: str = None,
                                              hide_labels: bool = False,
                                              colour_variation: bool = False,
@@ -139,6 +140,7 @@ class ImageManipulation:
         :param title: The title of the plot.
         :param pointsize: The size of the points.
         :param intensity_column: The column in the data centre frame that contains the intensity values.
+        :param static_intensity: Whether or not to use a static intensity value.
         :param label_column: The column in the data centre frame that contains the labels.
         :param hide_labels: Whether or not to hide the labels.
         :param colour_variation: Whether or not to vary the colour of the markers.
@@ -161,6 +163,8 @@ class ImageManipulation:
         intensities = (intensities - np.min(intensities)) / (np.max(intensities) - np.min(intensities)) * 9 + 1
         if invert_intensity:
             intensities = 11 - intensities
+        if static_intensity:
+            intensities = [pointsize for _ in range(len(intensities))]
         # handle colour variation
         if colour_variation:
             # get the land availability column
