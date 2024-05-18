@@ -22,6 +22,30 @@ from PIL import Image
 # YSUM_DNI = YSUM_DIR + 'DNI.tif'
 # YSUM_DIF = YSUM_DIR + 'DIF.tif'
 
+
+def create_ordinal_list(floating_list: float) -> list:
+    """
+    Converts a floating point list to an ordinal list, where the elements are in the original order, but
+    are converted to integers that represent their place in an ordered list.
+
+    :param floating_list: the list to convert
+    :return: the ordinal list
+    """
+
+    # Create a copy of the list
+    ordinal_list = floating_list.copy()
+
+    # Sort the list
+    ordinal_list.sort()
+
+    # Create a dictionary that maps the original values to their ordinal values
+    ordinal_dict = {value: i for i, value in enumerate(ordinal_list)}
+
+    # Convert the original values to their ordinal values
+    ordinal_list = [ordinal_dict[value] for value in floating_list]
+
+    return ordinal_list
+
 def save_minimal_image(image: np.ndarray,
                        savefile: str,
                        zoombounds: tuple = constants.ZOOM_BOUNDS,
