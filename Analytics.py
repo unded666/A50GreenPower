@@ -402,7 +402,7 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                                       colour_variation=True)
     folium_saver(O1_map, constants.TEMP_MAP_HTML, constants.LAND_REQUIREMENT_OUTPUT)
 
-
+    # second big output is cost centre prices
 
 
     # plot the data centres on a backdrop of solar energy, graded by the variance score

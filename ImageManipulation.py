@@ -128,7 +128,8 @@ class ImageManipulation:
                                              intensity_column: str = None,
                                              label_column: str = None,
                                              hide_labels: bool = False,
-                                             colour_variation: bool = False) -> folium.Map:
+                                             colour_variation: bool = False,
+                                             invert_intensity = False) -> folium.Map:
         """
         Projects the data centres onto the folium map as markers. The colout variation checks if the available land is
         sufficient to meet the land requirement, and changes the colour of the marker to a secondary colour if it is.
@@ -158,6 +159,8 @@ class ImageManipulation:
         intensities = data_centre_frame[intensity_column].to_list()
         # modify intensities to be a scale of 1 to 10, spanning the range of the data
         intensities = (intensities - np.min(intensities)) / (np.max(intensities) - np.min(intensities)) * 9 + 1
+        if invert_intensity:
+            intensities = 11 - intensities
         # handle colour variation
         if colour_variation:
             # get the land availability column
