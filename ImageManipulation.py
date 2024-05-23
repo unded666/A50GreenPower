@@ -95,6 +95,7 @@ class ImageManipulation:
                                       pointsize = None,
                                       bbox: int = None,
                                       cmap: str = 'hot_r',
+                                      dot_colour = 'blue',
                                       savefile: str = SAVE_LOCATION):
         """
         Projects the data centres onto the map
@@ -133,7 +134,7 @@ class ImageManipulation:
         # Plot the data centres on the map
         for lat, long in coords:
             px, py = self.translate_coordinates_to_pixels(lat, long, src)
-            plt.scatter(px, py, color='blue', s=pointsize)
+            plt.scatter(px, py, color=dot_colour, s=pointsize)
 
         plt.axis('equal')  # Set the aspect ratio of the axes to be equal
         if title is not None:

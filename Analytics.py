@@ -525,6 +525,7 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                       img_in=preference_img,
                                                       title='Preference by land use',
                                                       zoombounds=constants.ZOOM_BOUNDS,
+                                                      cmap='Greens',
                                                       savefile='./Data/Output_files/Maps/LandUse.png')
 
     # plot the data centres by land requirement on a backdrop of the land price
