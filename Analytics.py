@@ -346,7 +346,7 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
 
     # set booleans to run various sections of the analysis
     run_detailed_land_views = False
-    run_overviews = False
+    run_overviews = True
 
     # Read the data from the excel file
     print('Reading the data from the excel file')
@@ -431,11 +431,23 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                       zoombounds=constants.ZOOM_BOUNDS,
                                                       savefile='./Data/Output_files/Maps/SolarWithDCentres.png')
 
+    # plot the data centres on a backdrop of solar energy, graded by the variance score
+    ImageManipulation().project_graded_data_centres_onto_map(data_centre_frame=price_df,
+                                                             src=solar_src,
+                                                             img_in=solar_base,
+                                                             intensity_column='vari_score',
+                                                             invert_preference=True,
+                                                             title='Preferred Data Centre Locations by solar reliability',
+                                                             zoombounds=constants.ZOOM_BOUNDS,
+                                                             cmap='hot_r',
+                                                             cbar=False,
+                                                             savefile='./Data/Output_files/Maps/SolarReliability.png')
+
     # create minimal land price file
     save_minimal_image(image=land_price_image,
                        savefile=constants.LAND_PRICE_MIN_FILE,
                        zoombounds=constants.ZOOM_BOUNDS,
-                       cmap='Greens')
+                       cmap='Greens_r')
 
 
     # plot data centres on a folium map of RSA, with land requirement as an intensity value for the data centre markers
@@ -460,6 +472,31 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                                           hide_labels=True,
                                                                           colour_variation=True)
         folium_saver(O1_map, constants.TEMP_MAP_HTML, constants.LAND_REQUIREMENT_OUTPUT)
+        land_required_col = 'Adjusted Total Land Required'
+        available_land_col = 'Total Available Land'
+        price_df_dropped_sites = price_df.query('`Adjusted Total Land Required` > `Total Available Land`')
+        O1b_map = folium.Map(location=constants.RSA_LOCATION, zoom_start=6)
+        O1b_map = folium_overlay(map=O1b_map,
+                                overlay_path=constants.LAND_PRICE_MIN_FILE,
+                                overlay_src=solar_src,
+                                overlay_stretch=(2.6, 2.1),
+                                overlay_offset=(-0.35, 0.3),
+                                overlay_opacity=0.5)
+        O1b_map = ImageManipulation().project_data_centres_onto_folium_map(data_centre_frame=price_df_dropped_sites,
+                                                                           map=O1b_map,
+                                                                           title='Data Centre Locations by Land Requirement',
+                                                                           pointsize=5,
+                                                                           intensity_column='Adjusted Total Land Required',
+                                                                           label_column='Site',
+                                                                           hide_labels=True,
+                                                                           colour_variation=True)
+        folium_saver(O1b_map, constants.TEMP_MAP_HTML, constants.LAND_REQUIREMENT_OUTPUT_TRIMMED)
+
+        # reload fresh solar basis
+        solar_image, solar_transform, solar_src = DataReader(constants.SOLAR_FILE).read_tiff()
+        solar_image = solar_image.astype(float)
+        solar_image[solar_image < 0] = np.NaN
+        solar_base = solar_image.copy()
 
         # second big output is cost centre prices
         save_minimal_image(image=land_use_img,
@@ -506,17 +543,17 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
             folium_saver(map_i, constants.TEMP_MAP_HTML, clean_white_space_from_name(savefile))
 
 
-    # plot the data centres on a backdrop of solar energy, graded by the variance score
-    ImageManipulation().project_graded_data_centres_onto_map(data_centre_frame=price_df,
-                                                             src=solar_src,
-                                                             img_in=solar_base,
-                                                             intensity_column='vari_score',
-                                                             invert_preference=True,
-                                                             title='Preferred Data Centre Locations by solar reliability',
-                                                             zoombounds=constants.ZOOM_BOUNDS,
-                                                             cmap='hot_r',
-                                                             cbar=False,
-                                                             savefile='./Data/Output_files/Maps/SolarReliability.png')
+    # # plot the data centres on a backdrop of solar energy, graded by the variance score
+    # ImageManipulation().project_graded_data_centres_onto_map(data_centre_frame=price_df,
+    #                                                          src=solar_src,
+    #                                                          img_in=solar_base,
+    #                                                          intensity_column='vari_score',
+    #                                                          invert_preference=True,
+    #                                                          title='Preferred Data Centre Locations by solar reliability',
+    #                                                          zoombounds=constants.ZOOM_BOUNDS,
+    #                                                          cmap='hot_r',
+    #                                                          cbar=False,
+    #                                                          savefile='./Data/Output_files/Maps/SolarReliability.png')
 
 
     # plot the data centres on a backdrop of the land preferences
@@ -526,7 +563,17 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                       title='Preference by land use',
                                                       zoombounds=constants.ZOOM_BOUNDS,
                                                       cmap='Greens',
-                                                      savefile='./Data/Output_files/Maps/LandUse.png')
+                                                      savefile='./Data/Output_files/Maps/LandUse_v1.png')
+
+    # plot the data centres on a backdrop of the land preferences
+    ImageManipulation().project_data_centres_onto_map(data_centre_frame=price_df,
+                                                      src=solar_src,
+                                                      img_in=preference_img,
+                                                      title='Preference by land use',
+                                                      zoombounds=constants.ZOOM_BOUNDS,
+                                                      cmap='Greens',
+                                                      dot_colour='purple',
+                                                      savefile='./Data/Output_files/Maps/LandUse_v2.png')
 
     # plot the data centres by land requirement on a backdrop of the land price
     ImageManipulation().project_graded_data_centres_onto_map(data_centre_frame=price_df,
