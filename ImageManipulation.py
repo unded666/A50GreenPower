@@ -94,6 +94,7 @@ class ImageManipulation:
                                       zoombounds: tuple = None,
                                       pointsize = None,
                                       bbox: int = None,
+                                      cmap: str = 'hot_r',
                                       savefile: str = SAVE_LOCATION):
         """
         Projects the data centres onto the map
@@ -114,10 +115,10 @@ class ImageManipulation:
             plt.figure(figsize = bbox)
         # Plot the image
         if zoombounds is None:
-            plt.imshow(img, cmap='hot_r')
+            plt.imshow(img, cmap=cmap)
         else:
             left, bottom, right, top = zoombounds
-            plt.imshow(img[top:bottom, left:right], cmap='hot_r')
+            plt.imshow(img[top:bottom, left:right], cmap=cmap)
 
         plt.colorbar()
 
