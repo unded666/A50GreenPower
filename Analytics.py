@@ -23,6 +23,16 @@ from PIL import Image
 # YSUM_DIF = YSUM_DIR + 'DIF.tif'
 
 
+def clean_white_space_from_name(name: str) -> str:
+    """
+    Cleans the white space from the name of the data centre
+
+    :param name: the name to clean
+    :return: the cleaned name
+    """
+
+    return name.strip()
+
 def save_minimal_image(image: np.ndarray,
                        savefile: str,
                        zoombounds: tuple = constants.ZOOM_BOUNDS,
@@ -48,20 +58,23 @@ def plot_zoomed_image(location: tuple,
                       overlay_src: rasterio.io.DatasetReader,
                       overlay_stretch: tuple = (2.6, 2.1),
                       overlay_offset: tuple = (-0.35, 0.3),
-                      overlay_opacity: float = 0.5) -> folium.Map:
+                      overlay_opacity: float = 0.5,
+                      zoom_level = 12,
+                      title = None) -> folium.Map:
 
     """
 
-    :param location:
-    :param overlay_path:
-    :param overlay_src:
-    :param overlay_stretch:
-    :param overlay_offset:
-    :param overlay_opacity:
+    :param location: the location to zoom in on
+    :param overlay_path: path to the overlay image
+    :param overlay_src: rasterio source object
+    :param overlay_stretch: the stretch of the overlay
+    :param overlay_offset: the offset of the overlay
+    :param overlay_opacity: the opacity of the overlay
+    :param zoom_level: the zoom level of the map
     :return:
     """
 
-    map = folium.Map(location=location, zoom_start=13)
+    map = folium.Map(location=location, zoom_start=zoom_level)
     map = folium_overlay(map=map,
                             overlay_path=overlay_path,
                             overlay_src=overlay_src,
@@ -69,6 +82,11 @@ def plot_zoomed_image(location: tuple,
                             overlay_offset=overlay_offset,
                             overlay_opacity=overlay_opacity)
     folium.CircleMarker(location=location, radius=10, fill=True, color='Purple').add_to(map)
+    if title is not None:
+        html = f'''
+             <h3 align="center" style="font-size:20px"><b>{title}</b></h3>
+             '''
+        map.get_root().html.add_child(folium.Element(html))
 
     return map
 
@@ -326,6 +344,10 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
     :return: the output dataframe
     """
 
+    # set booleans to run various sections of the analysis
+    run_detailed_land_views = False
+    run_overviews = False
+
     # Read the data from the excel file
     print('Reading the data from the excel file')
     data_centre_wrangler = DataCentreWrangler(constants.DATA_CENTRE_FILE)
@@ -419,79 +441,69 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
     # plot data centres on a folium map of RSA, with land requirement as an intensity value for the data centre markers
     # and an overlay of land price
 
-    O1_map = folium.Map(location=constants.RSA_LOCATION, zoom_start=6)
-    O1_map = folium_overlay(map=O1_map,
-                            overlay_path=constants.LAND_PRICE_MIN_FILE,
-                            overlay_src=solar_src,
-                            overlay_stretch=(2.6, 2.1),
-                            overlay_offset=(-0.35, 0.3),
-                            overlay_opacity=0.5)
+    if run_overviews:
 
-    O1_map = ImageManipulation().project_data_centres_onto_folium_map(data_centre_frame=price_df,
-                                                                      map=O1_map,
-                                                                      title='Data Centre Locations by Land Requirement',
-                                                                      pointsize=5,
-                                                                      intensity_column='Adjusted Total Land Required',
-                                                                      label_column='Site',
-                                                                      hide_labels=True,
-                                                                      colour_variation=True)
-    folium_saver(O1_map, constants.TEMP_MAP_HTML, constants.LAND_REQUIREMENT_OUTPUT)
+        O1_map = folium.Map(location=constants.RSA_LOCATION, zoom_start=6)
+        O1_map = folium_overlay(map=O1_map,
+                                overlay_path=constants.LAND_PRICE_MIN_FILE,
+                                overlay_src=solar_src,
+                                overlay_stretch=(2.6, 2.1),
+                                overlay_offset=(-0.35, 0.3),
+                                overlay_opacity=0.5)
 
-    # second big output is cost centre prices
-    save_minimal_image(image=land_use_img,
-                       savefile=constants.LAND_USE_MIN_FILE,
-                       zoombounds=constants.ZOOM_BOUNDS,
-                       cmap='Greens')
+        O1_map = ImageManipulation().project_data_centres_onto_folium_map(data_centre_frame=price_df,
+                                                                          map=O1_map,
+                                                                          title='Data Centre Locations by Land Requirement',
+                                                                          pointsize=5,
+                                                                          intensity_column='Adjusted Total Land Required',
+                                                                          label_column='Site',
+                                                                          hide_labels=True,
+                                                                          colour_variation=True)
+        folium_saver(O1_map, constants.TEMP_MAP_HTML, constants.LAND_REQUIREMENT_OUTPUT)
 
-    O2_map = folium.Map(location=constants.RSA_LOCATION, zoom_start=6)
-    O2_map = folium_overlay(map=O2_map,
-                            overlay_path=constants.LAND_USE_MIN_FILE,
-                            overlay_src=solar_src,
-                            overlay_stretch=(2.6, 2.1),
-                            overlay_offset=(-0.35, 0.3),
-                            overlay_opacity=0.5)
+        # second big output is cost centre prices
+        save_minimal_image(image=land_use_img,
+                           savefile=constants.LAND_USE_MIN_FILE,
+                           zoombounds=constants.ZOOM_BOUNDS,
+                           cmap='Greens')
 
-    ImageManipulation().project_data_centres_onto_folium_map(data_centre_frame=price_df,
-                                                             map=O2_map,
-                                                             title='Data Centre Locations by Cost',
-                                                             pointsize=5,
-                                                             intensity_column='Total Land Price (R)',
-                                                             ordinal_intensity=True,
-                                                             label_column='Site',
-                                                             hide_labels=True,
-                                                             colour_variation=False,
-                                                             invert_intensity=True)
+        O2_map = folium.Map(location=constants.RSA_LOCATION, zoom_start=6)
+        O2_map = folium_overlay(map=O2_map,
+                                overlay_path=constants.LAND_USE_MIN_FILE,
+                                overlay_src=solar_src,
+                                overlay_stretch=(2.6, 2.1),
+                                overlay_offset=(-0.35, 0.3),
+                                overlay_opacity=0.5)
 
-    folium_saver(O2_map, constants.TEMP_MAP_HTML, constants.LAND_COST_OUTPUT)
+        ImageManipulation().project_data_centres_onto_folium_map(data_centre_frame=price_df,
+                                                                 map=O2_map,
+                                                                 title='Data Centre Locations by Cost',
+                                                                 pointsize=5,
+                                                                 intensity_column='Total Land Price (R)',
+                                                                 ordinal_intensity=True,
+                                                                 label_column='Site',
+                                                                 hide_labels=True,
+                                                                 colour_variation=False,
+                                                                 invert_intensity=True)
+
+        folium_saver(O2_map, constants.TEMP_MAP_HTML, constants.LAND_COST_OUTPUT)
 
 
-    # Zoom in somewhere for glory!
-    loc = price_df.coordinates[0]
-    # O3_map = folium.Map(location=loc, zoom_start=13)
-    # O3 = folium_overlay(map=O3_map,
-    #                     overlay_path=constants.LAND_PRICE_MIN_FILE,
-    #                     overlay_src=solar_src,
-    #                     overlay_stretch=(2.6, 2.1),
-    #                     overlay_offset=(-0.35, 0.3),
-    #                     overlay_opacity=0.5)
-    # ImageManipulation().project_data_centres_onto_folium_map(data_centre_frame=price_df,
-    #                                                          map=O3_map,
-    #                                                          title='Data Centre Locations by Cost',
-    #                                                          pointsize=8,
-    #                                                          intensity_column='Total Land Price (R)',
-    #                                                          static_intensity=True,
-    #                                                          label_column='Site',
-    #                                                          hide_labels=False,
-    #                                                          colour_variation=False,
-    #                                                          invert_intensity=False)
-    O3_map = plot_zoomed_image(location=loc,
-                           overlay_path=constants.LAND_PRICE_MIN_FILE,
-                           overlay_src=solar_src,
-                           overlay_stretch=(2.6, 2.1),
-                           overlay_offset=(-0.35, 0.3),
-                           overlay_opacity=0.5)
-    folium_saver(O3_map, constants.TEMP_MAP_HTML, './WorkingData/Maps/ZoomedCostMap.png')
-
+    if run_detailed_land_views:
+        zooming_df = price_df[price_df['Total Available Land'] < price_df['Adjusted Total Land Required']]
+        for row in zooming_df.iterrows():
+            Site = row[1]['Site']
+            loc = row[1]['coordinates']
+            map_i = plot_zoomed_image(location=loc,
+                                      overlay_path=constants.LAND_PRICE_MIN_FILE,
+                                      overlay_src=solar_src,
+                                      overlay_stretch=(2.6, 2.1),
+                                      overlay_offset=(-0.35, 0.3),
+                                      overlay_opacity=0.5,
+                                      zoom_level=12,
+                                      title=Site)
+            savefile = f"./Data/Output_files/Maps/ZoomedCostMap_{Site}.png"
+            folium_saver(map_i, constants.TEMP_MAP_HTML, clean_white_space_from_name(savefile))
 
 
     # plot the data centres on a backdrop of solar energy, graded by the variance score
@@ -502,10 +514,9 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                              invert_preference=True,
                                                              title='Preferred Data Centre Locations by solar reliability',
                                                              zoombounds=constants.ZOOM_BOUNDS,
-                                                             cmap='cool',
+                                                             cmap='hot_r',
                                                              cbar=False,
                                                              savefile='./Data/Output_files/Maps/SolarReliability.png')
-
 
 
     # plot the data centres on a backdrop of the land preferences
@@ -547,12 +558,13 @@ def run_analysis(outfile: str = None) -> pd.DataFrame:
                                                         savefile=constants.TEMP_FILE)
 
 
-    sa_det_map = rich_map(location=constants.RSA_LOCATION,
-                          zoom_start=6,
-                          marker_locations=marker_locations,
-                          marker_labels=marker_labels)
+    if run_overviews:
+        sa_det_map = rich_map(location=constants.RSA_LOCATION,
+                              zoom_start=6,
+                              marker_locations=marker_locations,
+                              marker_labels=marker_labels)
 
-    folium_saver(sa_det_map, constants.TEMP_MAP_HTML, './Data/Output_files/Maps/SAmap.png')
+        folium_saver(sa_det_map, constants.TEMP_MAP_HTML, './Data/Output_files/Maps/SAmap.png')
 
     temp_img = plt.imread(constants.TEMP_FILE)
     zoomed_image = temp_img[250:350, 600:700, :]
